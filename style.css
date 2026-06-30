@@ -2111,3 +2111,25 @@ body.dark-theme .date-card .task-item:hover {
     padding: var(--spacing-3xl);
     color: var(--color-text-tertiary);
 }
+
+/* Playlist Time Info */
+.playlist-time-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+}
+
+.playlist-time-total {
+    color: var(--color-text-secondary);
+    display: inline-flex;
+    align-items: center;
+}
+
+.playlist-time-watched {
+    color: var(--color-success);
+    display: inline-flex;
+    align-items: center;
+}

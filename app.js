@@ -1652,6 +1652,28 @@ class ProductivityHub {
 
         } while (nextPageToken);
 
+        // 3. Fetch durations for all videos in batches of 50
+        const videoIds = videos.map(v => v.id);
+        const durationMap = {};
+
+        for (let i = 0; i < videoIds.length; i += 50) {
+            const batch = videoIds.slice(i, i + 50);
+            const durUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${batch.join(',')}&key=${key}`;
+            const durResp = await fetch(durUrl);
+            const durData = await durResp.json();
+
+            if (durData.items) {
+                durData.items.forEach(item => {
+                    durationMap[item.id] = this.parseISO8601Duration(item.contentDetails.duration);
+                });
+            }
+        }
+
+        // Attach duration to each video
+        videos.forEach(v => {
+            v.durationSeconds = durationMap[v.id] || 0;
+        });
+
         return {
             id: playlistId,
             title: details.title,
@@ -1684,6 +1706,12 @@ class ProductivityHub {
         const progress = total === 0 ? 0 : (completed / total) * 100;
         const expandedClass = playlist.expanded ? 'expanded' : '';
 
+        // Calculate total and watched durations
+        const totalSeconds = playlist.videos.reduce((sum, v) => sum + (v.durationSeconds || 0), 0);
+        const watchedSeconds = playlist.videos.filter(v => v.completed).reduce((sum, v) => sum + (v.durationSeconds || 0), 0);
+        const totalTimeStr = this.formatDuration(totalSeconds);
+        const watchedTimeStr = this.formatDuration(watchedSeconds);
+
         return `
             <div class="playlist-card ${expandedClass}" id="playlist-${playlist.id}">
                 <div class="playlist-header" onclick="app.togglePlaylistExpand('${playlist.id}')">
@@ -1699,6 +1727,20 @@ class ProductivityHub {
                                     <div class="playlist-progress-bar-fill" style="width: ${progress}%"></div>
                                 </div>
                                 <span class="playlist-progress-text">${Math.round(progress)}%</span>
+                            </div>
+                            <div class="playlist-time-info">
+                                <span class="playlist-time-total">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align: -2px; margin-right: 4px;">
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>Total: ${totalTimeStr}
+                                </span>
+                                <span class="playlist-time-watched">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align: -2px; margin-right: 4px;">
+                                        <path d="M22 11.08V12C21.9988 14.1564 21.3005 16.2547 20.0093 17.9818C18.7182 19.7088 16.9033 20.9725 14.8354 21.5839C12.7674 22.1953 10.5573 22.1219 8.53447 21.3746C6.51168 20.6273 4.78465 19.2461 3.61096 17.4371C2.43727 15.628 1.87979 13.4881 2.02168 11.3363C2.16356 9.18455 2.99721 7.13631 4.39828 5.49706C5.79935 3.85781 7.69279 2.71537 9.79619 2.24013C11.8996 1.7649 14.1003 1.98232 16.07 2.85999" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                        <path d="M22 4L12 14.01L9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>Watched: ${watchedTimeStr}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -1960,6 +2002,32 @@ pause
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // Parse ISO 8601 duration (e.g. PT1H23M45S) into total seconds
+    parseISO8601Duration(iso) {
+        const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+        if (!match) return 0;
+        const hours = parseInt(match[1] || 0);
+        const minutes = parseInt(match[2] || 0);
+        const seconds = parseInt(match[3] || 0);
+        return hours * 3600 + minutes * 60 + seconds;
+    }
+
+    // Format seconds into a human-readable string (e.g. "3h 24m" or "45m 12s")
+    formatDuration(totalSeconds) {
+        if (totalSeconds === 0) return '0m';
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+        }
+        if (minutes > 0) {
+            return `${minutes}m ${seconds}s`;
+        }
+        return `${seconds}s`;
     }
 }
 
