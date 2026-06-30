@@ -96,6 +96,15 @@ class ProductivityHub {
                 }
             });
         });
+
+        // Close speed dropdowns on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.playlist-speed-container')) {
+                document.querySelectorAll('.playlist-speed-dropdown').forEach(dropdown => {
+                    dropdown.classList.remove('show');
+                });
+            }
+        });
     }
 
     switchPage(page) {
@@ -1751,11 +1760,16 @@ class ProductivityHub {
         const progress = total === 0 ? 0 : (completed / total) * 100;
         const expandedClass = playlist.expanded ? 'expanded' : '';
 
-        // Calculate total and watched durations
+        // Calculate total and watched durations adjusted by speed
+        const speed = playlist.speed || 1.0;
         const totalSeconds = playlist.videos.reduce((sum, v) => sum + (v.durationSeconds || 0), 0);
         const watchedSeconds = playlist.videos.filter(v => v.completed).reduce((sum, v) => sum + (v.durationSeconds || 0), 0);
-        const totalTimeStr = this.formatDuration(totalSeconds);
-        const watchedTimeStr = this.formatDuration(watchedSeconds);
+        
+        const adjustedTotalSeconds = Math.round(totalSeconds / speed);
+        const adjustedWatchedSeconds = Math.round(watchedSeconds / speed);
+        
+        const totalTimeStr = this.formatDuration(adjustedTotalSeconds);
+        const watchedTimeStr = this.formatDuration(adjustedWatchedSeconds);
 
         return `
             <div class="playlist-card ${expandedClass}" id="playlist-${playlist.id}">
@@ -1773,19 +1787,44 @@ class ProductivityHub {
                                 </div>
                                 <span class="playlist-progress-text">${Math.round(progress)}%</span>
                             </div>
-                            <div class="playlist-time-info">
-                                <span class="playlist-time-total">
+                            <div class="playlist-time-info" onclick="event.stopPropagation();">
+                                <span class="playlist-time-total" title="Original Total: ${this.formatDuration(totalSeconds)}">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align: -2px; margin-right: 4px;">
                                         <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
                                         <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>Total: ${totalTimeStr}
+                                    </svg>Total: ${totalTimeStr}${speed !== 1 ? ` (${speed}x)` : ''}
                                 </span>
-                                <span class="playlist-time-watched">
+                                <span class="playlist-time-watched" title="Original Watched: ${this.formatDuration(watchedSeconds)}">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align: -2px; margin-right: 4px;">
                                         <path d="M22 11.08V12C21.9988 14.1564 21.3005 16.2547 20.0093 17.9818C18.7182 19.7088 16.9033 20.9725 14.8354 21.5839C12.7674 22.1953 10.5573 22.1219 8.53447 21.3746C6.51168 20.6273 4.78465 19.2461 3.61096 17.4371C2.43727 15.628 1.87979 13.4881 2.02168 11.3363C2.16356 9.18455 2.99721 7.13631 4.39828 5.49706C5.79935 3.85781 7.69279 2.71537 9.79619 2.24013C11.8996 1.7649 14.1003 1.98232 16.07 2.85999" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                         <path d="M22 4L12 14.01L9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>Watched: ${watchedTimeStr}
+                                    </svg>Watched: ${watchedTimeStr}${speed !== 1 ? ` (${speed}x)` : ''}
                                 </span>
+                                
+                                <div class="playlist-speed-container">
+                                    <button class="playlist-speed-btn" onclick="app.toggleSpeedDropdown(event, '${playlist.id}')" title="Choose Playback Speed">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <polygon points="10 8 16 12 10 16 10 8"/>
+                                        </svg>
+                                        <span>Speed: ${speed}x</span>
+                                    </button>
+                                    <div class="playlist-speed-dropdown" id="speed-dropdown-${playlist.id}">
+                                        <div class="playlist-speed-title">Playback Speed</div>
+                                        ${[1, 1.25, 1.5, 1.75, 2].map(s => {
+                                            const isActive = Math.abs(s - speed) < 0.01;
+                                            return `
+                                                <button class="playlist-speed-option ${isActive ? 'active' : ''}" onclick="app.setPlaylistSpeed('${playlist.id}', ${s})">
+                                                    ${s}x
+                                                </button>
+                                            `;
+                                        }).join('')}
+                                        <div class="playlist-speed-custom-container">
+                                            <input type="text" class="playlist-speed-custom-input" placeholder="Custom (e.g. 2.5x)" value="${[1, 1.25, 1.5, 1.75, 2].some(s => Math.abs(s - speed) < 0.01) ? '' : speed + 'x'}" onkeydown="if(event.key === 'Enter') { app.setPlaylistSpeed('${playlist.id}', this.value); }">
+                                            <button class="playlist-speed-custom-btn" onclick="app.setPlaylistSpeed('${playlist.id}', this.previousElementSibling.value)">Apply</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1840,6 +1879,44 @@ class ProductivityHub {
         if (playlist) {
             playlist.expanded = !playlist.expanded;
             this.renderPlaylists(); // Re-render to update state
+        }
+    }
+
+    toggleSpeedDropdown(event, playlistId) {
+        event.stopPropagation();
+        
+        // Close other dropdowns first
+        document.querySelectorAll('.playlist-speed-dropdown').forEach(dropdown => {
+            if (dropdown.id !== `speed-dropdown-${playlistId}`) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        const dropdown = document.getElementById(`speed-dropdown-${playlistId}`);
+        if (dropdown) {
+            dropdown.classList.toggle('show');
+            if (dropdown.classList.contains('show')) {
+                const input = dropdown.querySelector('.playlist-speed-custom-input');
+                if (input) input.focus();
+            }
+        }
+    }
+
+    setPlaylistSpeed(playlistId, speedString) {
+        if (typeof speedString === 'string') {
+            speedString = speedString.replace(/[xX]/g, '').trim();
+        }
+        const speed = parseFloat(speedString);
+        if (isNaN(speed) || speed <= 0) {
+            alert('Please enter a valid speed greater than 0');
+            return;
+        }
+
+        const playlist = this.playlists.find(p => p.id === playlistId);
+        if (playlist) {
+            playlist.speed = Math.round(speed * 100) / 100;
+            this.saveData('playlists', this.playlists);
+            this.renderPlaylists();
         }
     }
 
