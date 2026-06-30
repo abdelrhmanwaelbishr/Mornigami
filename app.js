@@ -138,6 +138,7 @@ class ProductivityHub {
                 content.innerHTML = this.getPlaylistPageHTML();
                 this.setupPlaylistEventListeners();
                 this.renderPlaylists();
+                this.backfillMissingDurations();
                 break;
         }
     }
@@ -1564,6 +1565,50 @@ class ProductivityHub {
             addBtn.addEventListener('click', () => {
                 this.openModal('playlistModal');
             });
+        }
+    }
+
+    async backfillMissingDurations() {
+        const key = this.youtubeApiKey;
+        let updated = false;
+
+        for (const playlist of this.playlists) {
+            // Find videos that are missing duration data
+            const missing = playlist.videos.filter(v => !v.durationSeconds || v.durationSeconds === 0);
+            if (missing.length === 0) continue;
+
+            const missingIds = missing.map(v => v.id);
+            const durationMap = {};
+
+            for (let i = 0; i < missingIds.length; i += 50) {
+                const batch = missingIds.slice(i, i + 50);
+                try {
+                    const durUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${batch.join(',')}&key=${key}`;
+                    const durResp = await fetch(durUrl);
+                    const durData = await durResp.json();
+
+                    if (durData.items) {
+                        durData.items.forEach(item => {
+                            durationMap[item.id] = this.parseISO8601Duration(item.contentDetails.duration);
+                        });
+                    }
+                } catch (err) {
+                    console.warn('Failed to fetch durations for batch:', err);
+                }
+            }
+
+            // Attach durations
+            missing.forEach(v => {
+                if (durationMap[v.id]) {
+                    v.durationSeconds = durationMap[v.id];
+                    updated = true;
+                }
+            });
+        }
+
+        if (updated) {
+            this.saveData('playlists', this.playlists);
+            this.renderPlaylists();
         }
     }
 
