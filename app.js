@@ -1907,7 +1907,22 @@ class ProductivityHub {
                     <div class="playlist-info">
                         <img src="${playlist.thumbnail}" alt="" class="playlist-thumbnail">
                         <div class="playlist-details">
-                            <h3 class="playlist-title">${this.escapeHtml(playlist.title)}</h3>
+                            <div class="playlist-title-container" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;">
+                                <h3 class="playlist-title" style="margin-bottom: 0;">${this.escapeHtml(playlist.title)}</h3>
+                                <div class="playlist-share-container" onclick="event.stopPropagation();" style="display: flex; align-items: center; gap: 6px; background: var(--color-bg); padding: 2px 6px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); max-width: fit-content; height: 22px;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-text-tertiary); flex-shrink: 0;">
+                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                    </svg>
+                                    <span class="playlist-link-text" style="font-size: var(--font-size-xs); color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; font-family: monospace;">https://www.youtube.com/playlist?list=${playlist.id}</span>
+                                    <button class="btn-copy" onclick="app.copyPlaylistLink(event, '${playlist.id}')" title="Copy Playlist Link" style="background: none; border: none; padding: 2px; cursor: pointer; color: var(--color-text-secondary); display: flex; align-items: center; transition: color var(--transition-fast); margin-left: 2px;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-secondary)'">
+                                        <svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                             <div class="playlist-meta">
                                 ${completed} / ${total} watched • ${playlist.channel}
                             </div>
@@ -2154,6 +2169,28 @@ class ProductivityHub {
         this.motivationalSettings.streakCount = 0;
         this.saveData('motivationalSettings', this.motivationalSettings);
         this.updateMotivationalCounterUI();
+    }
+
+    copyPlaylistLink(event, playlistId) {
+        if (event) event.stopPropagation();
+        const btn = event ? event.currentTarget : null;
+        const url = `https://www.youtube.com/playlist?list=${playlistId}`;
+        navigator.clipboard.writeText(url).then(() => {
+            if (!btn) return;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-green, #10B981)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            `;
+            btn.title = "Copied!";
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.title = "Copy Playlist Link";
+            }, 2000);
+        }).catch(err => {
+            console.error('Could not copy text: ', err);
+        });
     }
 
     showMotivationalPopup(message) {
