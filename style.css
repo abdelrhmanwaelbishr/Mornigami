@@ -2134,6 +2134,12 @@ body.dark-theme .date-card .task-item:hover {
     align-items: center;
 }
 
+.playlist-time-left {
+    color: var(--color-warning);
+    display: inline-flex;
+    align-items: center;
+}
+
 /* Playlist Playback Speed Control */
 .playlist-speed-container {
     position: relative;
