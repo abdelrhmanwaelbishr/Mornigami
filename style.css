@@ -2549,3 +2549,8 @@ body.dark-theme .playlist-group-card.group-slate .playlist-group-progress-fill {
 .modal-tabs .tab-btn:hover {
     color: var(--color-primary-light) !important;
 }
+
+/* Hide scrollbar for playlist link container */
+.playlist-link-text::-webkit-scrollbar {
+    display: none;
+}
