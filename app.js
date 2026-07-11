@@ -2070,10 +2070,10 @@ class ProductivityHub {
                         ` : `
                         <div class="playlist-group-grid">
                             ${playlist.groups.map(g => {
-                                const stats = getGroupProgressStats(g);
-                                const gProgress = stats.total === 0 ? 0 : (stats.completed / stats.total) * 100;
-                                const isCompleted = stats.completed === stats.total;
-                                return `
+            const stats = getGroupProgressStats(g);
+            const gProgress = stats.total === 0 ? 0 : (stats.completed / stats.total) * 100;
+            const isCompleted = stats.completed === stats.total;
+            return `
                                     <div class="playlist-group-card group-${g.color || 'default'}">
                                         <div class="playlist-group-name" title="${this.escapeHtml(g.name)}">${this.escapeHtml(g.name)}</div>
                                         <div class="playlist-group-range">Videos ${g.start} - ${g.end}</div>
@@ -2099,7 +2099,7 @@ class ProductivityHub {
                                         </div>
                                     </div>
                                 `;
-                            }).join('')}
+        }).join('')}
                         </div>
                         `}
                     </div>
@@ -2518,7 +2518,7 @@ pause
             if (tabQuick) tabQuick.classList.remove('active');
             if (contentSingle) contentSingle.style.display = 'block';
             if (contentQuick) contentQuick.style.display = 'none';
-            
+
             const nameEl = document.getElementById('groupName');
             const startEl = document.getElementById('groupStart');
             const endEl = document.getElementById('groupEnd');
@@ -2530,7 +2530,7 @@ pause
             if (tabQuick) tabQuick.classList.add('active');
             if (contentSingle) contentSingle.style.display = 'none';
             if (contentQuick) contentQuick.style.display = 'block';
-            
+
             const nameEl = document.getElementById('groupName');
             const startEl = document.getElementById('groupStart');
             const endEl = document.getElementById('groupEnd');
@@ -2565,7 +2565,7 @@ pause
 
             if (titleEl) titleEl.textContent = 'Edit Group';
             if (btnTextEl) btnTextEl.textContent = 'Save Changes';
-            
+
             const nameEl = document.getElementById('groupName');
             if (nameEl) nameEl.value = group.name;
             if (startInput) startInput.value = group.start;
@@ -2581,10 +2581,10 @@ pause
         } else {
             if (titleEl) titleEl.textContent = 'Create Group';
             if (btnTextEl) btnTextEl.textContent = 'Create Group';
-            
+
             const formEl = document.getElementById('playlistGroupForm');
             if (formEl) formEl.reset();
-            
+
             if (startInput) startInput.value = 1;
             if (endInput) endInput.value = maxVideos;
 
@@ -2679,7 +2679,7 @@ pause
             const name = document.getElementById('groupName').value.trim();
             const start = parseInt(document.getElementById('groupStart').value, 10);
             const end = parseInt(document.getElementById('groupEnd').value, 10);
-            
+
             const colorRadios = document.getElementsByName('groupColor');
             let color = 'default';
             for (const radio of colorRadios) {
