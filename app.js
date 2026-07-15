@@ -1725,6 +1725,11 @@ class ProductivityHub {
                         <div class="motivational-toggle-wrapper" style="display: flex; align-items: center; gap: var(--spacing-sm); background: var(--color-surface); padding: 0.5rem 1rem; border-radius: var(--radius-full); border: 1.5px solid var(--color-border); font-size: var(--font-size-sm); font-weight: 500; transition: opacity var(--transition-fast); ${this.motivationalSettings.enabled ? '' : 'opacity: 0.7;'}">
                             <span style="color: var(--color-text-secondary);">Streak:</span>
                             <span id="StreakCounter" style="font-weight: 700; color: var(--color-primary);">${this.motivationalSettings.enabled ? `${this.motivationalSettings.streakCount}/<input type="number" id="motivationalTargetInput" value="${this.motivationalSettings.targetCount || 5}" min="1" max="100" style="width: 32px; border: none; background: transparent; color: var(--color-primary); font-weight: 700; font-family: inherit; font-size: inherit; text-align: center; border-bottom: 1.5px dashed var(--color-primary); padding: 0; outline: none; margin: 0 2px;" onchange="app.changeMotivationalTarget(this.value)">` : 'Off'}</span>
+                            <button id="resetStreakBtn" title="Reset Streak" onclick="app.resetPlaylistStreak()" style="background: transparent; border: none; padding: 2px; cursor: pointer; color: var(--color-text-tertiary); display: ${this.motivationalSettings.enabled ? 'flex' : 'none'}; align-items: center; justify-content: center; transition: color var(--transition-fast); margin-left: 2px; margin-right: 2px;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-tertiary)'">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                                </svg>
+                            </button>
                             <label class="switch">
                                 <input type="checkbox" id="toggleMotivationalQuotes" ${this.motivationalSettings.enabled ? 'checked' : ''} onchange="app.toggleMotivationalQuotesSetting(this.checked)">
                                 <span class="slider"></span>
@@ -2355,16 +2360,25 @@ class ProductivityHub {
     updateMotivationalCounterUI() {
         const counterEl = document.getElementById('StreakCounter');
         const wrapperEl = document.querySelector('.motivational-toggle-wrapper');
+        const resetBtn = document.getElementById('resetStreakBtn');
         if (counterEl) {
             if (this.motivationalSettings.enabled) {
                 const target = this.motivationalSettings.targetCount || 5;
                 counterEl.innerHTML = `${this.motivationalSettings.streakCount}/<input type="number" id="motivationalTargetInput" value="${target}" min="1" max="100" style="width: 32px; border: none; background: transparent; color: var(--color-primary); font-weight: 700; font-family: inherit; font-size: inherit; text-align: center; border-bottom: 1.5px dashed var(--color-primary); padding: 0; outline: none; margin: 0 2px;" onchange="app.changeMotivationalTarget(this.value)">`;
                 if (wrapperEl) wrapperEl.style.opacity = '1';
+                if (resetBtn) resetBtn.style.display = 'flex';
             } else {
                 counterEl.textContent = 'Off';
                 if (wrapperEl) wrapperEl.style.opacity = '0.7';
+                if (resetBtn) resetBtn.style.display = 'none';
             }
         }
+    }
+
+    resetPlaylistStreak() {
+        this.motivationalSettings.streakCount = 0;
+        this.saveData('motivationalSettings', this.motivationalSettings);
+        this.updateMotivationalCounterUI();
     }
 
     closeMotivationalPopup() {

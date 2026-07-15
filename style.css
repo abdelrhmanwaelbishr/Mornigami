@@ -1987,7 +1987,6 @@ body.dark-theme .date-card .task-item:hover {
     margin-top: var(--spacing-lg);
     padding-top: var(--spacing-lg);
     border-top: 1px solid var(--color-border-light);
-    animation: slideDown 0.3s ease-out;
 }
 
 .playlist-card.expanded .playlist-videos {
