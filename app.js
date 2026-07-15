@@ -342,26 +342,26 @@ class ProductivityHub {
                     return;
                 }
                 content.innerHTML = document.getElementById('settingsPageTemplate').innerHTML;
-                
+
                 // Populate dynamic fields
                 const displayName = this.currentUser.displayName || '';
                 const email = this.currentUser.email || '';
                 const photoURL = this._cachedProfilePic || this.currentUser.photoURL || '';
                 const initial = (displayName || email || 'U').charAt(0).toUpperCase();
-                
+
                 const settingsUsername = document.getElementById('settingsUsername');
                 if (settingsUsername) settingsUsername.value = displayName;
-                
+
                 const settingsEmail = document.getElementById('settingsEmail');
                 if (settingsEmail) settingsEmail.value = email;
-                
+
                 const settingsAvatarPreview = document.getElementById('settingsAvatarPreview');
                 if (settingsAvatarPreview) {
-                    settingsAvatarPreview.innerHTML = photoURL 
-                        ? `<img src="${this.escapeHtml(photoURL)}" alt="Profile">` 
+                    settingsAvatarPreview.innerHTML = photoURL
+                        ? `<img src="${this.escapeHtml(photoURL)}" alt="Profile">`
                         : `<div class="avatar-fallback-lg">${initial}</div>`;
                 }
-                
+
                 this.setupSettingsEventListeners();
                 break;
         }
