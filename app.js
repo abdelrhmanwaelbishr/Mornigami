@@ -1877,8 +1877,8 @@ class ProductivityHub {
                                 <div class="video-number">${idx + 1}.</div>
                                 <div class="video-checkbox" onclick="app.toggleVideo('${playlist.id}', '${video.id}')">
                                     ${video.completed ? `
-                                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                                            <path d="M3 8L6 11L13 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style="display: block;">
+                                            <path d="M3 8L6 11L13 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                                         </svg>
                                     ` : ''}
                                 </div>

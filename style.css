@@ -2079,8 +2079,14 @@ body.dark-theme .date-card .task-item:hover {
 }
 
 .video-item.completed .video-checkbox {
-    background-color: var(--color-primary);
-    border-color: var(--color-primary);
+    background-color: var(--color-success) !important;
+    border-color: var(--color-success) !important;
+    color: white !important;
+    box-shadow: 0 2px 6px rgba(82, 196, 26, 0.25) !important;
+}
+
+body.dark-theme .video-item.completed .video-checkbox {
+    box-shadow: 0 2px 6px rgba(82, 196, 26, 0.15) !important;
 }
 
 .video-link {
