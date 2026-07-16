@@ -239,7 +239,7 @@ class PomodoroTimer {
 
             new Notification('Pomodoro Timer', {
                 body: messages[this.currentMode],
-                icon: '/favicon.ico'
+                icon: 'icon.png'
             });
         }
 
