@@ -2614,16 +2614,20 @@ pause
         this.currentUser = user;
         const loginBtn = document.getElementById('loginBtn');
         const userMenuWrapper = document.getElementById('userMenuWrapper');
+        const userEmailText = document.getElementById('userEmailText');
         const dropdownUserEmail = document.getElementById('dropdownUserEmail');
 
         if (user) {
+            // 1. تصفير البيانات المحلية فوراً قبل تحميل بيانات الحساب الجديد (لمنع التسريب)
+            this.clearAllLocalData();
+
             if (loginBtn) loginBtn.style.display = 'none';
             if (userMenuWrapper) {
                 userMenuWrapper.style.display = 'flex';
-
-                // Update avatar — initial render (may be overridden by Firestore data below)
-                this.updateNavbarAvatar(user.photoURL, user.displayName, user.email);
-
+                if (userEmailText) {
+                    const displayName = user.displayName || user.email.split('@')[0];
+                    userEmailText.textContent = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+                }
                 if (dropdownUserEmail) {
                     dropdownUserEmail.textContent = user.displayName ? `Logged in as ${user.displayName}` : `Logged in as ${user.email}`;
                 }
@@ -2632,42 +2636,39 @@ pause
                 this.switchPage('habits');
             }
 
-            // === جلب البيانات من السيرفر وعمل self-healing لمطابقة اسم المستخدم ===
+            // 2. جلب بيانات الحساب الجديد من السيرفر
             if (window.db && window.firestoreUtils) {
-                const { doc, getDoc, setDoc } = window.firestoreUtils;
-
-                // 1. Self-healing for username mapping (registers existing username -> email maps in Firestore)
-                if (user.displayName) {
-                    const usernameRef = doc(window.db, "usernames", user.displayName.toLowerCase());
-                    getDoc(usernameRef).then((snap) => {
-                        if (!snap.exists()) {
-                            setDoc(usernameRef, { email: user.email, uid: user.uid })
-                                .then(() => console.log("Self-healed username mapping for:", user.displayName))
-                                .catch(e => console.error("Self-heal error:", e));
-                        }
-                    }).catch(e => console.error("Self-heal check error:", e));
-                }
-
-                // 2. Fetch habits, tasks, and profile pic
+                const { doc, getDoc } = window.firestoreUtils;
                 try {
                     const userRef = doc(window.db, "users", user.uid);
                     const docSnap = await getDoc(userRef);
 
                     if (docSnap.exists()) {
                         const data = docSnap.data();
-                        if (data.habits) this.habits = data.habits;
-                        if (data.tasks) this.tasks = data.tasks;
-                        if (data.pomodoroSettings) this.pomodoroSettings = data.pomodoroSettings;
-                        if (data.pomodoroStats) this.pomodoroStats = data.pomodoroStats;
-                        if (data.playlists) this.playlists = data.playlists;
-                        if (data.motivationalSettings) this.motivationalSettings = data.motivationalSettings;
 
-                        // Load profile pic from Firestore (handles base64 images too long for Auth)
-                        this._cachedProfilePic = data.profilePicUrl || null;
-                        if (data.profilePicUrl) {
-                            this.updateNavbarAvatar(data.profilePicUrl, user.displayName, user.email);
+                        // تحميل البيانات من السيرفر للذاكرة وللـ localStorage
+                        if (data.habits) {
+                            this.habits = data.habits;
+                            localStorage.setItem('habits', JSON.stringify(this.habits));
+                        }
+                        if (data.tasks) {
+                            this.tasks = data.tasks;
+                            localStorage.setItem('tasks', JSON.stringify(this.tasks));
+                        }
+                        if (data.playlists) {
+                            this.playlists = data.playlists;
+                            localStorage.setItem('playlists', JSON.stringify(this.playlists));
+                        }
+                        if (data.pomodoroStats) {
+                            this.pomodoroStats = data.pomodoroStats;
+                            localStorage.setItem('pomodoroStats', JSON.stringify(this.pomodoroStats));
+                        }
+                        if (data.motivationalSettings) {
+                            this.motivationalSettings = data.motivationalSettings;
+                            localStorage.setItem('motivationalSettings', JSON.stringify(this.motivationalSettings));
                         }
 
+                        // إعادة رندر الصفحة بالبيانات الجديدة
                         this.renderPage(this.currentPage);
                     }
                 } catch (err) {
@@ -2676,6 +2677,9 @@ pause
             }
 
         } else {
+            // لو المستخدم سجل خروج، بنظف الـ localStorage تماماً عشان يرجع anonymous نضيف
+            this.clearAllLocalData();
+
             if (loginBtn) loginBtn.style.display = 'flex';
             if (userMenuWrapper) {
                 userMenuWrapper.style.display = 'none';
@@ -2862,6 +2866,31 @@ pause
                 }
             });
         }
+    }
+    // دالة لتصفير بيانات التطبيق بالكامل محلياً
+    clearAllLocalData() {
+        // 1. مسح البيانات من الـ localStorage
+        const keysToClear = ['habits', 'tasks', 'playlists', 'pomodoroStats', 'motivationalSettings'];
+        keysToClear.forEach(key => localStorage.removeItem(key));
+
+        // 2. إعادة تعيين متغيرات التطبيق في الذاكرة لقيمها الافتراضية
+        this.habits = [];
+        this.tasks = [];
+        this.playlists = [];
+        this.pomodoroStats = {
+            sessionsToday: 0,
+            totalFocusTime: 0,
+            currentStreak: 0,
+            lastSessionDate: null
+        };
+        this.motivationalSettings = {
+            enabled: true,
+            streakCount: 0,
+            targetCount: 5
+        };
+
+        // 3. إعادة تحميل الصفحة المعروضة حالياً عشان تظهر فاضية
+        this.renderPage(this.currentPage);
     }
 
     // ============================================
