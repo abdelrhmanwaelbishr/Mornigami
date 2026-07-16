@@ -41,6 +41,7 @@ class ProductivityHub {
     init() {
         this.applyTheme();
         this.setupEventListeners();
+        this.setupOverlayAuthEventListeners();
         this.renderPage(this.currentPage);
         this.checkPomodoroStats();
 
@@ -2616,8 +2617,17 @@ pause
         const userMenuWrapper = document.getElementById('userMenuWrapper');
         const userEmailText = document.getElementById('userEmailText');
         const dropdownUserEmail = document.getElementById('dropdownUserEmail');
+        const authOverlay = document.getElementById('authOverlay');
 
         if (user) {
+            // Hide the mandatory auth overlay with a smooth transition
+            if (authOverlay) {
+                authOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    authOverlay.style.display = 'none';
+                }, 300);
+            }
+
             // 1. تصفير البيانات المحلية فوراً قبل تحميل بيانات الحساب الجديد (لمنع التسريب)
             this.clearAllLocalData();
 
@@ -2677,6 +2687,16 @@ pause
             }
 
         } else {
+            // Show the mandatory auth overlay, hide loading spinner, show form card
+            if (authOverlay) {
+                authOverlay.style.display = 'flex';
+                authOverlay.style.opacity = '1';
+                const loader = document.getElementById('authOverlayLoader');
+                const card = document.getElementById('authOverlayCard');
+                if (loader) loader.style.display = 'none';
+                if (card) card.style.display = 'block';
+            }
+
             // لو المستخدم سجل خروج، بنظف الـ localStorage تماماً عشان يرجع anonymous نضيف
             this.clearAllLocalData();
 
@@ -2684,6 +2704,182 @@ pause
             if (userMenuWrapper) {
                 userMenuWrapper.style.display = 'none';
             }
+        }
+    }
+
+    setupOverlayAuthEventListeners() {
+        const authForm = document.getElementById('overlayAuthForm');
+        const toggleAuthMode = document.getElementById('overlayToggleAuthMode');
+
+        this.overlayAuthMode = 'signin';
+
+        if (toggleAuthMode) {
+            toggleAuthMode.addEventListener('click', (e) => {
+                e.preventDefault();
+                const authTitle = document.getElementById('overlayAuthTitle');
+                const authSubtitle = document.getElementById('overlayAuthSubtitle');
+                const authSubmitText = document.getElementById('overlayAuthSubmitText');
+                const authToggleText = document.getElementById('overlayAuthToggleText');
+                const authMessage = document.getElementById('overlayAuthMessage');
+                const emailLabel = document.getElementById('overlayEmailLabel');
+                const emailInput = document.getElementById('overlayEmailInput');
+
+                // عناصر اليوزرنيم
+                const usernameGroup = document.getElementById('overlayUsernameGroup');
+                const usernameInput = document.getElementById('overlayUsernameInput');
+
+                if (authMessage) {
+                    authMessage.className = 'auth-message';
+                    authMessage.style.display = 'none';
+                }
+
+                if (this.overlayAuthMode === 'signin') {
+                    this.overlayAuthMode = 'signup';
+                    authTitle.textContent = 'Create Account';
+                    authSubtitle.textContent = 'Start tracking your goals today';
+                    authSubmitText.textContent = 'Create Account';
+                    authToggleText.textContent = 'Already have an account? ';
+                    toggleAuthMode.textContent = 'Sign In';
+                    if (emailLabel) emailLabel.textContent = 'Email Address';
+                    if (emailInput) emailInput.placeholder = 'email@domain.com';
+                    // إظهار حقل اليوزرنيم وجعله إجباري
+                    if (usernameGroup) {
+                        usernameGroup.style.display = 'block';
+                        usernameInput.required = true;
+                    }
+                } else {
+                    this.overlayAuthMode = 'signin';
+                    authTitle.textContent = 'Sign In';
+                    authSubtitle.textContent = 'Access your productivity hub';
+                    authSubmitText.textContent = 'Sign In';
+                    authToggleText.textContent = "Don't have an account? ";
+                    toggleAuthMode.textContent = 'Sign Up';
+                    if (emailLabel) emailLabel.textContent = 'Email or Username';
+                    if (emailInput) emailInput.placeholder = 'Email/Username';
+                    // إخفاء حقل اليوزرنيم
+                    if (usernameGroup) {
+                        usernameGroup.style.display = 'none';
+                        usernameInput.required = false;
+                    }
+                }
+            });
+        }
+
+        if (authForm) {
+            authForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('overlayEmailInput').value.trim();
+                const password = document.getElementById('overlayPasswordInput').value;
+                const username = document.getElementById('overlayUsernameInput')?.value.trim();
+
+                const authMessage = document.getElementById('overlayAuthMessage');
+                const submitAuthBtn = document.getElementById('overlaySubmitAuthBtn');
+                const authSubmitText = document.getElementById('overlayAuthSubmitText');
+
+                if (!email || !password) return;
+
+                if (submitAuthBtn) submitAuthBtn.disabled = true;
+                const originalBtnText = authSubmitText.textContent;
+                authSubmitText.textContent = this.overlayAuthMode === 'signin' ? 'Signing In...' : 'Creating Account...';
+
+                if (authMessage) {
+                    authMessage.className = 'auth-message';
+                    authMessage.style.display = 'none';
+                }
+
+                const handleSuccess = (userCredential) => {
+                    if (authMessage) {
+                        authMessage.textContent = this.overlayAuthMode === 'signin' ? 'Signed in successfully!' : 'Account created successfully!';
+                        authMessage.className = 'auth-message success';
+                        authMessage.style.display = 'block';
+                    }
+                };
+
+                const handleError = (error) => {
+                    console.error("Overlay Auth error:", error);
+                    if (submitAuthBtn) submitAuthBtn.disabled = false;
+                    authSubmitText.textContent = originalBtnText;
+
+                    let userFriendlyMsg = error.message;
+                    if (error.code === 'auth/email-already-in-use') {
+                        userFriendlyMsg = 'This email address is already in use.';
+                    } else if (error.code === 'auth/invalid-email') {
+                        userFriendlyMsg = 'Please enter a valid email address.';
+                    } else if (error.code === 'auth/weak-password') {
+                        userFriendlyMsg = 'The password must be at least 6 characters long.';
+                    } else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                        userFriendlyMsg = 'Invalid email or password. Please try again.';
+                    } else if (error.code === 'auth/username-taken') {
+                        userFriendlyMsg = 'This username is already taken. Please choose another one.';
+                    } else if (error.code === 'auth/username-not-found') {
+                        userFriendlyMsg = 'Username not found. Please check your spelling or sign up.';
+                    }
+
+                    if (authMessage) {
+                        authMessage.textContent = userFriendlyMsg;
+                        authMessage.className = 'auth-message error';
+                        authMessage.style.display = 'block';
+                    }
+                };
+
+                if (this.overlayAuthMode === 'signin') {
+                    const isEmail = email.includes('@');
+                    const getEmailPromise = isEmail ? Promise.resolve(email) : (async () => {
+                        if (window.db && window.firestoreUtils) {
+                            const { doc, getDoc } = window.firestoreUtils;
+                            const usernameRef = doc(window.db, "usernames", email.toLowerCase());
+                            const usernameSnap = await getDoc(usernameRef);
+                            if (usernameSnap.exists()) {
+                                return usernameSnap.data().email;
+                            } else {
+                                throw { code: 'auth/username-not-found', message: 'Username not found.' };
+                            }
+                        } else {
+                            throw { code: 'auth/no-firestore', message: 'Cloud database is unavailable.' };
+                        }
+                    })();
+
+                    getEmailPromise
+                        .then((resolvedEmail) => {
+                            return window.firebaseAuth.signInWithEmailAndPassword(window.auth, resolvedEmail, password);
+                        })
+                        .then(handleSuccess)
+                        .catch(handleError);
+                } else {
+                    const checkUsernamePromise = username ? (async () => {
+                        if (window.db && window.firestoreUtils) {
+                            const { doc, getDoc } = window.firestoreUtils;
+                            const usernameRef = doc(window.db, "usernames", username.toLowerCase());
+                            const usernameSnap = await getDoc(usernameRef);
+                            if (usernameSnap.exists()) {
+                                throw { code: 'auth/username-taken', message: 'This username is already taken.' };
+                            }
+                        }
+                    })() : Promise.resolve();
+
+                    checkUsernamePromise
+                        .then(() => {
+                            return window.firebaseAuth.createUserWithEmailAndPassword(window.auth, email, password);
+                        })
+                        .then((userCredential) => {
+                            const user = userCredential.user;
+                            const promises = [];
+                            if (username) {
+                                if (window.firebaseAuth.updateProfile) {
+                                    promises.push(window.firebaseAuth.updateProfile(user, { displayName: username }));
+                                }
+                                if (window.db && window.firestoreUtils) {
+                                    const { doc, setDoc } = window.firestoreUtils;
+                                    const usernameRef = doc(window.db, "usernames", username.toLowerCase());
+                                    promises.push(setDoc(usernameRef, { email: email, uid: user.uid }));
+                                }
+                            }
+                            return Promise.all(promises).then(() => userCredential);
+                        })
+                        .then(handleSuccess)
+                        .catch(handleError);
+                }
+            });
         }
     }
 
