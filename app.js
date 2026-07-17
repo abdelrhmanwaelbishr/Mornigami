@@ -123,6 +123,12 @@ class ProductivityHub {
     }
 
     init() {
+        // Apply initial sidebar state to avoid layout flashing
+        const isMinimized = localStorage.getItem('sidebarMinimized') === 'true';
+        if (isMinimized) {
+            document.body.classList.add('sidebar-minimized');
+        }
+
         this.applyTheme();
         this.setupEventListeners();
         this.setupOverlayAuthEventListeners();
@@ -536,8 +542,11 @@ class ProductivityHub {
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
-                const page = e.target.dataset.page;
-                this.switchPage(page);
+                const navLink = e.target.closest('.nav-link');
+                const page = navLink ? navLink.dataset.page : null;
+                if (page) {
+                    this.switchPage(page);
+                }
             });
         });
 
@@ -546,6 +555,16 @@ class ProductivityHub {
             navBrand.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.switchPage('home');
+            });
+        }
+
+        // Sidebar collapse toggle
+        const navToggleBtn = document.getElementById('navToggleBtn');
+        if (navToggleBtn) {
+            navToggleBtn.addEventListener('click', () => {
+                document.body.classList.toggle('sidebar-minimized');
+                const minimized = document.body.classList.contains('sidebar-minimized');
+                localStorage.setItem('sidebarMinimized', minimized);
             });
         }
 
@@ -5621,32 +5640,33 @@ pause
         }
 
         // Gamification Reward section
+        const xpRewardCard = document.getElementById('financeXPRewardCard');
         if (this.financeData.xpBonusClaimedDates[todayDateStr] === true) {
-            xpRewardStatusText.textContent = `🎉 Today's mindful spending bonus claimed!`;
-            xpRewardStatusText.style.color = 'var(--color-success)';
-            if (claimBtn) {
-                claimBtn.textContent = 'Claimed ✓';
-                claimBtn.disabled = true;
-                claimBtn.style.opacity = '0.6';
-                claimBtn.style.cursor = 'not-allowed';
-            }
-        } else if (todaySpent > dailyLimit) {
-            xpRewardStatusText.textContent = `❌ Daily limit exceeded (${currency} ${todaySpent.toFixed(2)} / ${currency} ${dailyLimit.toFixed(2)}).`;
-            xpRewardStatusText.style.color = 'var(--color-danger)';
-            if (claimBtn) {
-                claimBtn.textContent = 'Limit Exceeded';
-                claimBtn.disabled = true;
-                claimBtn.style.opacity = '0.6';
-                claimBtn.style.cursor = 'not-allowed';
+            if (xpRewardCard) {
+                xpRewardCard.style.display = 'none';
             }
         } else {
-            xpRewardStatusText.textContent = `✨ Staying under limit! Ready to claim.`;
-            xpRewardStatusText.style.color = 'var(--color-text-secondary)';
-            if (claimBtn) {
-                claimBtn.textContent = 'Claim +' + (this.xpConfig.financeBonus || 50) + ' XP';
-                claimBtn.disabled = false;
-                claimBtn.style.opacity = '1';
-                claimBtn.style.cursor = 'pointer';
+            if (xpRewardCard) {
+                xpRewardCard.style.display = 'block';
+            }
+            if (todaySpent > dailyLimit) {
+                xpRewardStatusText.textContent = `❌ Daily limit exceeded (${currency} ${todaySpent.toFixed(2)} / ${currency} ${dailyLimit.toFixed(2)}).`;
+                xpRewardStatusText.style.color = 'var(--color-danger)';
+                if (claimBtn) {
+                    claimBtn.textContent = 'Limit Exceeded';
+                    claimBtn.disabled = true;
+                    claimBtn.style.opacity = '0.6';
+                    claimBtn.style.cursor = 'not-allowed';
+                }
+            } else {
+                xpRewardStatusText.textContent = `✨ Staying under limit! Ready to claim.`;
+                xpRewardStatusText.style.color = 'var(--color-text-secondary)';
+                if (claimBtn) {
+                    claimBtn.textContent = 'Claim +' + (this.xpConfig.financeBonus || 50) + ' XP';
+                    claimBtn.disabled = false;
+                    claimBtn.style.opacity = '1';
+                    claimBtn.style.cursor = 'pointer';
+                }
             }
         }
 
@@ -6066,6 +6086,15 @@ pause
             nameInput.focus();
             this.updateGoalSuggestions();
         }
+    }
+
+    deleteActiveGoal(event) {
+        if (event) event.preventDefault();
+        if (!confirm("Are you sure you want to remove your active savings goal?")) return;
+
+        this.financeData.activeGoal = null;
+        this.saveFinanceData();
+        this.renderFinanceDashboard();
     }
 
     // Inspect User Finance (Admin Override)

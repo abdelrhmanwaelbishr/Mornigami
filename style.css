@@ -21,9 +21,9 @@
     --color-danger-bg: #FEF2F2;
 
     /* Neutrals - Crisp & Clean */
-    --color-bg: #F0F9FF;
+    --color-bg: #F1F5F9;
     --color-surface: #FFFFFF;
-    --color-border: #E0F2FE;
+    --color-border: #CBD5E1;
     --color-border-light: #F0F9FF;
 
     --color-text-primary: #0F172A;
@@ -53,7 +53,7 @@
     --spacing-3xl: 4rem;
 
     /* Shadows - Soft & Layered */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
     --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
     --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.06);
@@ -71,6 +71,10 @@
     --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* Sidebar Widths */
+    --sidebar-width: 250px;
+    --sidebar-width-minimized: 78px;
 }
 
 /* Dark Theme */
@@ -114,26 +118,29 @@ body {
 /* Navigation Bar */
 .main-nav {
     background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
-    position: sticky;
+    border-right: 1.5px solid var(--color-border);
+    position: fixed;
     top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
     z-index: 100;
-    backdrop-filter: blur(12px);
     box-shadow: var(--shadow-sm);
+    transition: width var(--transition-slow) var(--transition-spring);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .nav-content {
-    max-width: 100%;
-    /* ده التعديل اللي هيفرش البار */
-    width: 100%;
-    /* للتأكيد إن العرض كامل */
-    margin: 0 auto;
-    padding: 0 var(--spacing-lg);
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spacing-xl);
-    height: 72px;
+    flex-direction: column;
+    height: 100%;
+    padding: var(--spacing-lg) var(--spacing-md);
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: var(--spacing-lg);
 }
 
 .nav-brand {
@@ -141,33 +148,50 @@ body {
     align-items: center;
     gap: var(--spacing-md);
     text-decoration: none;
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1.5px solid var(--color-border);
+    transition: all var(--transition-base);
+}
+
+.brand-text-container {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+    transition: opacity var(--transition-fast) ease, width var(--transition-fast) ease;
+    opacity: 1;
+    overflow: hidden;
 }
 
 .nav-brand-text {
     font-family: var(--font-display);
     font-size: var(--font-size-lg);
-    font-weight: 700;
+    font-weight: 800;
     color: var(--color-text-primary);
     letter-spacing: -0.02em;
 }
 
 .nav-links {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: var(--spacing-xs);
     flex: 1;
-    justify-content: center;
+    justify-content: flex-start;
+    align-items: stretch;
 }
 
 .nav-link {
-    padding: var(--spacing-sm) var(--spacing-lg);
-    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
     font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--color-text-secondary);
     text-decoration: none;
     transition: all var(--transition-base);
     position: relative;
+    min-height: 48px;
 }
 
 .nav-link:hover {
@@ -183,13 +207,142 @@ body {
 .nav-link.active::after {
     content: '';
     position: absolute;
-    bottom: -1px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 40%;
-    height: 2px;
+    left: 0;
+    top: 15%;
+    height: 70%;
+    width: 4px;
     background: var(--color-primary);
-    border-radius: 2px 2px 0 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.nav-link-text {
+    transition: opacity var(--transition-fast) ease;
+    white-space: nowrap;
+    opacity: 1;
+}
+
+.nav-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.xp-nav-widget {
+    margin-top: auto;
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg);
+    border-radius: var(--radius-lg);
+    border: 1.5px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    transition: all var(--transition-base);
+}
+
+.xp-widget-details {
+    transition: opacity var(--transition-fast) ease;
+    opacity: 1;
+}
+
+.nav-toggle-btn {
+    align-self: center;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    border: 1.5px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    margin-top: auto;
+}
+
+.nav-toggle-btn:hover {
+    background: var(--color-bg);
+    border-color: var(--color-text-tertiary);
+    color: var(--color-text-primary);
+}
+
+.toggle-icon {
+    transition: transform var(--transition-slow) var(--transition-spring);
+}
+
+/* Minimized Sidebar Modifier Styles */
+body.sidebar-minimized .main-nav {
+    width: var(--sidebar-width-minimized);
+}
+
+body.sidebar-minimized .nav-content {
+    padding: var(--spacing-lg) var(--spacing-xs);
+    align-items: center;
+}
+
+body.sidebar-minimized .brand-text-container {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+body.sidebar-minimized .nav-brand {
+    justify-content: center;
+    gap: 0 !important;
+    width: 100%;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+body.sidebar-minimized .nav-link-text {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+body.sidebar-minimized .nav-link {
+    justify-content: center;
+    padding: var(--spacing-sm);
+    gap: 0 !important;
+}
+
+body.sidebar-minimized .nav-link.active::after {
+    left: 0;
+    top: 15%;
+    height: 70%;
+    width: 4px;
+}
+
+body.sidebar-minimized .toggle-icon {
+    transform: rotate(180deg);
+}
+
+/* Top Actions Floating Bar */
+.top-bar-actions {
+    position: absolute;
+    top: var(--spacing-md);
+    right: var(--spacing-lg);
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+    z-index: 99;
+}
+
+.top-bar-actions .xp-nav-widget {
+    margin: 0;
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: var(--spacing-xs) var(--spacing-md);
+    box-shadow: var(--shadow-sm);
+    width: 240px;
+    max-width: 260px;
+    flex: initial;
 }
 
 .nav-actions {
@@ -199,13 +352,16 @@ body {
 }
 
 /* App Container */
-
 .app-container {
     min-height: 100vh;
     max-width: 100%;
-    /* غيرنا دي عشان ياخد العرض كله */
-    margin: 0 auto;
-    padding: var(--spacing-xl) var(--spacing-lg);
+    margin-left: var(--sidebar-width);
+    padding: 96px var(--spacing-lg) var(--spacing-xl) var(--spacing-lg);
+    transition: margin-left var(--transition-slow) var(--transition-spring);
+}
+
+body.sidebar-minimized .app-container {
+    margin-left: var(--sidebar-width-minimized);
 }
 
 /* Header */
@@ -1575,21 +1731,85 @@ body.dark-theme .task-item:hover {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .main-nav {
+        position: fixed;
+        bottom: 0;
+        top: auto;
+        left: 0;
+        right: 0;
+        width: 100% !important;
+        height: 64px;
+        border-right: none;
+        border-top: 1.5px solid var(--color-border);
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        flex-direction: row;
+        background: var(--color-surface);
+        backdrop-filter: blur(12px);
+    }
+
     .nav-content {
-        height: auto;
-        flex-direction: column;
-        padding: var(--spacing-md) var(--spacing-lg);
-        gap: var(--spacing-md);
+        flex-direction: row !important;
+        height: 100% !important;
+        width: 100% !important;
+        padding: 0 var(--spacing-xs) !important;
+        align-items: center !important;
+        justify-content: space-around !important;
+        gap: 0 !important;
+    }
+
+    .nav-brand {
+        display: none !important;
     }
 
     .nav-links {
-        width: 100%;
-        justify-content: space-around;
+        flex-direction: row !important;
+        justify-content: space-around !important;
+        width: 100% !important;
+        gap: 0 !important;
+        margin: 0 !important;
     }
 
     .nav-link {
-        padding: var(--spacing-sm) var(--spacing-md);
-        font-size: var(--font-size-xs);
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 2px !important;
+        padding: 4px 0 !important;
+        border-radius: var(--radius-md) !important;
+        flex: 1 !important;
+        min-height: auto !important;
+    }
+
+    .nav-link.active::after {
+        left: 50% !important;
+        top: auto !important;
+        bottom: 0 !important;
+        height: 3px !important;
+        width: 20px !important;
+        transform: translateX(-50%) !important;
+    }
+
+    .nav-link-text {
+        font-size: 9px !important;
+        opacity: 1 !important;
+        display: block !important;
+        width: auto !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .xp-nav-widget {
+        display: none !important;
+    }
+
+    .nav-toggle-btn {
+        display: none !important;
+    }
+
+    .app-container {
+        margin-left: 0 !important;
+        margin-bottom: 64px !important;
+        padding: 80px var(--spacing-md) var(--spacing-md) var(--spacing-md) !important;
     }
 
     .timer-display {
