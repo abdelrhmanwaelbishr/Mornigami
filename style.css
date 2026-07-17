@@ -2646,6 +2646,7 @@ body.dark-theme .video-item.completed .video-checkbox {
 
 #motivationalTargetInput {
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 /* Playlist Group Styling */
@@ -4001,14 +4002,14 @@ body.dark-theme .auth-overlay {
 }
 
 .admin-tab-btn:hover {
-    background: var(--color-background);
+    background: var(--color-bg);
     color: var(--color-text-primary);
 }
 
 .admin-tab-btn.active {
-    background: var(--color-primary-light);
-    color: var(--color-primary);
-    border-color: var(--color-primary-light);
+    background: var(--color-primary);
+    color: var(--color-primary-contrast);
+    border-color: var(--color-primary);
 }
 
 .admin-tab-content {
