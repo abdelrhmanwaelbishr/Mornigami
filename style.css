@@ -4578,5 +4578,287 @@ body.dark-theme .auth-overlay {
     border-bottom: none;
 }
 
+/* ========================================
+   FINANCIAL TRACKER MODULE
+   ======================================== */
+
+/* Portal Card Theme Success (Money/Growth) */
+.portal-card.finance::before {
+    background: var(--color-success);
+}
+.portal-card.finance:hover {
+    border-color: var(--color-success);
+}
+.portal-icon-wrapper.finance {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(74, 222, 128, 0.1));
+}
+.portal-card-footer.finance {
+    color: var(--color-success);
+}
+
+/* Page Layout */
+.finance-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: var(--spacing-lg);
+    align-items: start;
+    margin-bottom: var(--spacing-2xl);
+}
+
+@media (max-width: 1024px) {
+    .finance-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Cards & Containers */
+.finance-card {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.finance-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.finance-card-title {
+    font-family: var(--font-display);
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+/* Category Preset Pills */
+.preset-tags-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.preset-tag-btn {
+    background: var(--color-bg);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: 6px 14px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast) ease-out;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.preset-tag-btn:hover {
+    background: var(--color-surface);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    transform: translateY(-1px);
+}
+
+.preset-tag-btn.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-primary-contrast);
+    box-shadow: 0 4px 12px rgba(14, 165, 160, 0.2);
+}
+
+/* Stat Cards override for Today spend status */
+.stat-card.limit-exceeded {
+    border-color: var(--color-danger);
+    background: var(--color-danger-bg);
+}
+.stat-card.limit-ok {
+    border-color: var(--color-success);
+    background: var(--color-success-bg);
+}
+
+/* Alert Banner */
+.finance-alert {
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    border: 1.5px solid transparent;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+}
+
+.finance-alert.warning {
+    background: var(--color-warning-bg);
+    border-color: var(--color-warning-light);
+    color: #92400E;
+}
+
+.finance-alert.danger {
+    background: var(--color-danger-bg);
+    border-color: var(--color-danger-light);
+    color: #991B1B;
+}
+
+.finance-alert.success {
+    background: var(--color-success-bg);
+    border-color: var(--color-success-light);
+    color: #166534;
+}
+
+/* Circular Chart */
+.finance-progress-circle-wrapper {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: var(--spacing-md) auto;
+}
+
+.finance-progress-circle {
+    transform: rotate(-90deg);
+}
+
+.finance-progress-circle circle {
+    fill: none;
+    stroke-width: 12;
+}
+
+.finance-progress-circle .circle-bg {
+    stroke: var(--color-border);
+}
+
+.finance-progress-circle .circle-fill {
+    stroke: var(--color-success);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.8s ease-in-out, stroke 0.3s ease;
+}
+
+.finance-progress-circle .circle-fill.danger {
+    stroke: var(--color-danger);
+}
+
+.finance-progress-circle-wrapper .circle-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.finance-progress-circle-wrapper .circle-percent {
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    color: var(--color-text-primary);
+}
+
+.finance-progress-circle-wrapper .circle-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Gamification Claim Widget */
+.xp-claim-card {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(14, 165, 160, 0.05));
+    border: 2px dashed var(--color-success);
+}
+
+.xp-claim-card:hover {
+    border-style: solid;
+}
+
+/* Transaction List */
+.expense-list-container {
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.expense-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1.5px solid var(--color-border-light);
+    gap: var(--spacing-md);
+}
+
+.expense-row:last-child {
+    border-bottom: none;
+}
+
+.expense-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.expense-name {
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+}
+
+.expense-meta {
+    font-size: 10px;
+    color: var(--color-text-tertiary);
+    font-weight: 600;
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.expense-tag {
+    background: var(--color-bg);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-secondary);
+}
+
+.expense-amount {
+    font-weight: 800;
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+}
+
+/* Dark Theme support for alerts */
+body.dark-theme .finance-alert.warning {
+    background: var(--color-warning-bg);
+    border-color: var(--color-border);
+    color: #FDE68A;
+}
+
+body.dark-theme .finance-alert.danger {
+    background: var(--color-danger-bg);
+    border-color: var(--color-border);
+    color: #FCA5A5;
+}
+
+body.dark-theme .finance-alert.success {
+    background: var(--color-success-bg);
+    border-color: var(--color-border);
+    color: #86EFAC;
+}
+
+body.dark-theme .preset-tag-btn {
+    background: #1E293B;
+    border-color: #334155;
+    color: var(--color-text-secondary);
+}
+
+
 
 

@@ -98,12 +98,26 @@ class ProductivityHub {
             pomodoro: 150,
             video: 40,
             groupBonus: 200,
-            levelBase: 500
+            levelBase: 500,
+            financeBonus: 50
         };
 
         // Initialize Role-Based Access Control
         this.userRole = null;
         this.activeAdminTab = 'analytics';
+
+        // Load Finance Data
+        this.financeData = this.loadData('financeData') || {
+            monthYear: '',
+            monthlyIncome: 0,
+            dailyBudget: 0,
+            expenses: [],
+            xpBonusClaimedDates: {},
+            categories: ['Coffee ☕', 'Diet & Groceries 🍏', 'Gaming 🎮', 'PC Accessories 💻', 'Transportation 🚗']
+        };
+        if (!this.financeData.categories || this.financeData.categories.length === 0) {
+            this.financeData.categories = ['Coffee ☕', 'Diet & Groceries 🍏', 'Gaming 🎮', 'PC Accessories 💻', 'Transportation 🚗'];
+        }
 
         this.init();
     }
@@ -698,6 +712,10 @@ class ProductivityHub {
                 content.innerHTML = document.getElementById('adminPageTemplate').innerHTML;
                 this.setupAdminEventListeners();
                 this.loadAllUsers();
+                break;
+            case 'finance':
+                content.innerHTML = document.getElementById('financePageTemplate').innerHTML;
+                this.initFinancePage();
                 break;
         }
     }
@@ -3714,6 +3732,8 @@ pause
             this.loadAllUsers();
         } else if (tabName === 'gamification') {
             this.loadGamificationSetup();
+        } else if (tabName === 'finance') {
+            this.loadAdminFinancePanel();
         }
     }
 
@@ -4445,7 +4465,8 @@ pause
                     video: data.video || 40,
                     groupBonus: data.groupBonus || 200,
                     levelBase: data.levelBase || 500,
-                    bountyExpireHours: data.bountyExpireHours || 24
+                    bountyExpireHours: data.bountyExpireHours || 24,
+                    financeBonus: data.financeBonus || 50
                 };
                 this.updateXPUI();
             }
@@ -5233,6 +5254,533 @@ pause
         this.friendsList = this.friendsList.filter(id => id !== friendUid);
         this.saveCustomizerState();
         this.renderFriendsCamp();
+    }
+
+    // ============================================
+    // FINANCIAL TRACKER MODULE
+    // ============================================
+
+    initFinancePage() {
+        const currentMonthYear = new Date().toISOString().substring(0, 7); // YYYY-MM
+        
+        // If current month is different, auto-reset for new month
+        if (this.financeData.monthYear !== currentMonthYear) {
+            this.financeData = {
+                monthYear: currentMonthYear,
+                monthlyIncome: 0,
+                dailyBudget: 0,
+                expenses: [],
+                xpBonusClaimedDates: {}
+            };
+            this.saveData('financeData', this.financeData);
+        }
+
+        const setupContainer = document.getElementById('financeSetupContainer');
+        const dashboardContainer = document.getElementById('financeDashboardContainer');
+        const headerActions = document.getElementById('financeHeaderActions');
+
+        if (!setupContainer || !dashboardContainer || !headerActions) return;
+
+        if (this.financeData.monthlyIncome === 0) {
+            setupContainer.style.display = 'block';
+            dashboardContainer.style.display = 'none';
+            headerActions.style.display = 'none';
+        } else {
+            setupContainer.style.display = 'none';
+            dashboardContainer.style.display = 'block';
+            headerActions.style.display = 'flex';
+            this.checkYesterdayFinanceXP();
+            this.renderFinanceDashboard();
+        }
+    }
+
+    handleFinanceSetup(event) {
+        if (event) event.preventDefault();
+        const incomeInput = document.getElementById('financeIncomeInput');
+        if (!incomeInput) return;
+
+        const income = parseFloat(incomeInput.value);
+        if (isNaN(income) || income <= 0) return;
+
+        const now = new Date();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const dailyBudget = parseFloat((income / daysInMonth).toFixed(2));
+
+        this.financeData.monthlyIncome = income;
+        this.financeData.dailyBudget = dailyBudget;
+        this.financeData.monthYear = now.toISOString().substring(0, 7);
+        this.financeData.expenses = [];
+        this.financeData.xpBonusClaimedDates = {};
+
+        const defaults = this.loadData('adminDefaultCategories') || ['Coffee ☕', 'Diet & Groceries 🍏', 'Gaming 🎮', 'PC Accessories 💻', 'Transportation 🚗'];
+        this.financeData.categories = [...defaults];
+
+        this.saveData('financeData', this.financeData);
+        this.switchPage('finance');
+    }
+
+    resetFinanceMonth() {
+        if (confirm("Are you sure you want to reset your budget and expenses for this month? This action cannot be undone.")) {
+            this.financeData.monthlyIncome = 0;
+            this.financeData.dailyBudget = 0;
+            this.financeData.expenses = [];
+            this.financeData.xpBonusClaimedDates = {};
+
+            this.saveData('financeData', this.financeData);
+            this.switchPage('finance');
+        }
+    }
+
+    selectPresetTag(button, text, category) {
+        // Clear active class from all tag buttons
+        const grid = button.parentElement;
+        if (grid) {
+            grid.querySelectorAll('.preset-tag-btn').forEach(btn => btn.classList.remove('active'));
+        }
+        button.classList.add('active');
+
+        // Populate fields
+        const descInput = document.getElementById('expenseNameInput');
+        if (descInput) {
+            descInput.value = text;
+        }
+
+        const catInput = document.getElementById('selectedExpenseCategory');
+        if (catInput) {
+            catInput.value = category;
+        }
+    }
+
+    handleLogExpense(event) {
+        if (event) event.preventDefault();
+
+        const nameInput = document.getElementById('expenseNameInput');
+        const amountInput = document.getElementById('expenseAmountInput');
+        const catInput = document.getElementById('selectedExpenseCategory');
+
+        if (!nameInput || !amountInput || !catInput) return;
+
+        const name = nameInput.value.trim();
+        const amount = parseFloat(amountInput.value);
+        const category = catInput.value || 'General';
+
+        if (!name || isNaN(amount) || amount <= 0) return;
+
+        const expense = {
+            id: 'exp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            name: name,
+            amount: amount,
+            category: category,
+            date: new Date().toISOString()
+        };
+
+        this.financeData.expenses.push(expense);
+        this.saveData('financeData', this.financeData);
+
+        // Reset fields
+        nameInput.value = '';
+        amountInput.value = '';
+        catInput.value = '';
+        
+        // Remove active class from buttons
+        document.querySelectorAll('.preset-tags-grid .preset-tag-btn').forEach(btn => btn.classList.remove('active'));
+
+        // Update dashboard
+        this.renderFinanceDashboard();
+    }
+
+    deleteExpense(id) {
+        if (confirm("Are you sure you want to delete this purchase log?")) {
+            this.financeData.expenses = this.financeData.expenses.filter(e => e.id !== id);
+            this.saveData('financeData', this.financeData);
+            this.renderFinanceDashboard();
+        }
+    }
+
+    claimFinanceXP() {
+        const todayDateStr = new Date().toDateString();
+        
+        // Calculate today's spent
+        const todayExpenses = this.financeData.expenses.filter(e => new Date(e.date).toDateString() === todayDateStr);
+        const todaySpent = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+        if (todaySpent <= this.financeData.dailyBudget && !this.financeData.xpBonusClaimedDates[todayDateStr]) {
+            this.financeData.xpBonusClaimedDates[todayDateStr] = true;
+            this.saveData('financeData', this.financeData);
+            const rewardXP = this.xpConfig.financeBonus || 50;
+            this.gainXP(rewardXP, "Mindful Spending Daily Bonus");
+            this.renderFinanceDashboard();
+        }
+    }
+
+    checkYesterdayFinanceXP() {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toDateString();
+
+        // Calculate yesterday's spent
+        const yesterdayExpenses = this.financeData.expenses.filter(e => new Date(e.date).toDateString() === yesterdayStr);
+        const yesterdaySpent = yesterdayExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+        // If stayed under budget and not claimed yet
+        if (this.financeData.dailyBudget > 0 && yesterdaySpent <= this.financeData.dailyBudget && !this.financeData.xpBonusClaimedDates[yesterdayStr]) {
+            this.financeData.xpBonusClaimedDates[yesterdayStr] = true;
+            this.saveData('financeData', this.financeData);
+            
+            // Trigger XP gain with slight delay to ensure UI is ready
+            setTimeout(() => {
+                const rewardXP = this.xpConfig.financeBonus || 50;
+                this.gainXP(rewardXP, "Yesterday's Mindful Spending Bonus");
+            }, 800);
+        }
+    }
+
+    renderFinanceDashboard() {
+        const monthlyBudgetVal = document.getElementById('financeMonthlyBudgetVal');
+        const dailyLimitVal = document.getElementById('financeDailyLimitVal');
+        const todaySpentVal = document.getElementById('financeTodaySpentVal');
+        const totalSpentText = document.getElementById('financeTotalSpentText');
+        const remainingText = document.getElementById('financeRemainingText');
+        const percentSpentText = document.getElementById('financePercentSpentText');
+        const progressCircleFill = document.getElementById('financeProgressCircleFill');
+        const alertBanner = document.getElementById('financeAlertBanner');
+        const xpRewardStatusText = document.getElementById('financeXPRewardStatusText');
+        const claimBtn = document.getElementById('claimFinanceXPBtn');
+
+        if (!monthlyBudgetVal) return; // Guard clause
+
+        // Render dynamic preset tags
+        const tagsGrid = document.getElementById('financePresetTagsGrid');
+        if (tagsGrid) {
+            tagsGrid.innerHTML = this.financeData.categories.map(cat => {
+                const cleanName = cat.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '').trim();
+                return `<button type="button" class="preset-tag-btn" onclick="app.selectPresetTag(this, '${cat}', '${cleanName}')">${cat}</button>`;
+            }).join('');
+        }
+
+        const income = this.financeData.monthlyIncome;
+        const dailyLimit = this.financeData.dailyBudget;
+
+        // Calculate spends
+        const todayDateStr = new Date().toDateString();
+        const todayExpenses = this.financeData.expenses.filter(e => new Date(e.date).toDateString() === todayDateStr);
+        const todaySpent = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+        const totalSpent = this.financeData.expenses.reduce((sum, e) => sum + e.amount, 0);
+        const remainingBalance = income - totalSpent;
+
+        // Render standard values
+        monthlyBudgetVal.textContent = `$${income.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        dailyLimitVal.textContent = `$${dailyLimit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        todaySpentVal.textContent = `$${todaySpent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        totalSpentText.textContent = `$${totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        remainingText.textContent = `$${remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+        // Today's limit card color indication
+        const todaySpentCard = document.getElementById('financeTodaySpentCard');
+        const todaySpentIcon = document.getElementById('financeTodaySpentIcon');
+        if (todaySpentCard && todaySpentIcon) {
+            if (todaySpent > dailyLimit) {
+                todaySpentCard.className = 'stat-card limit-exceeded';
+                todaySpentIcon.style.background = 'linear-gradient(135deg, #FEF2F2, #FCA5A5)';
+                todaySpentIcon.style.color = 'var(--color-danger)';
+            } else {
+                todaySpentCard.className = 'stat-card limit-ok';
+                todaySpentIcon.style.background = 'linear-gradient(135deg, #DCFCE7, #BBF7D0)';
+                todaySpentIcon.style.color = 'var(--color-success)';
+            }
+        }
+
+        // Circular progress ring updates
+        const percent = income > 0 ? Math.min(100, Math.max(0, (totalSpent / income) * 100)) : 0;
+        percentSpentText.textContent = `${Math.round(percent)}%`;
+
+        if (progressCircleFill) {
+            const offset = 439.8 * (1 - percent / 100);
+            progressCircleFill.style.strokeDashoffset = offset;
+            if (percent >= 100 || remainingBalance < 0) {
+                progressCircleFill.classList.add('danger');
+            } else {
+                progressCircleFill.classList.remove('danger');
+            }
+        }
+
+        // Dynamic alerts (depletion indicator)
+        const currentDay = new Date().getDate();
+        const now = new Date();
+        const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const avgDailySpend = currentDay > 0 ? (totalSpent / currentDay) : 0;
+
+        if (remainingBalance <= 0) {
+            alertBanner.className = 'finance-alert danger';
+            alertBanner.innerHTML = `🚨 <div><strong>Out of Budget!</strong> You have completely depleted your monthly funds. Consider resetting or restricting your spending.</div>`;
+        } else if (avgDailySpend > dailyLimit) {
+            const remainingDays = remainingBalance / avgDailySpend;
+            const depletionDay = currentDay + remainingDays;
+            
+            if (depletionDay < totalDays) {
+                const depDayInt = Math.min(totalDays, Math.ceil(depletionDay));
+                const suffix = (day) => {
+                    const s = ["th", "st", "nd", "rd"],
+                          v = day % 100;
+                    return day + (s[(v - 20) % 10] || s[v] || s[0]);
+                };
+                alertBanner.className = 'finance-alert warning';
+                alertBanner.innerHTML = `⚠️ <div><strong>Early Depletion Risk!</strong> At your current velocity of <strong>$${avgDailySpend.toFixed(2)}/day</strong> (vs recommended $${dailyLimit.toFixed(2)}/day), you are on track to deplete all funds by the <strong>${suffix(depDayInt)}</strong> of the month.</div>`;
+            } else {
+                alertBanner.className = 'finance-alert success';
+                alertBanner.innerHTML = `✅ <div><strong>On Track!</strong> Your remaining balance of $${remainingBalance.toFixed(2)} is healthy and will last until the end of the month.</div>`;
+            }
+        } else {
+            alertBanner.className = 'finance-alert success';
+            alertBanner.innerHTML = `✅ <div><strong>Safe Spending!</strong> Your average spending of <strong>$${avgDailySpend.toFixed(2)}/day</strong> is under the recommended limit. You are on track to finish the month with a surplus of <strong>$${remainingBalance.toFixed(2)}</strong>!</div>`;
+        }
+
+        // Gamification Reward section
+        if (this.financeData.xpBonusClaimedDates[todayDateStr] === true) {
+            xpRewardStatusText.textContent = `🎉 Today's mindful spending bonus claimed!`;
+            xpRewardStatusText.style.color = 'var(--color-success)';
+            if (claimBtn) {
+                claimBtn.textContent = 'Claimed ✓';
+                claimBtn.disabled = true;
+                claimBtn.style.opacity = '0.6';
+                claimBtn.style.cursor = 'not-allowed';
+            }
+        } else if (todaySpent > dailyLimit) {
+            xpRewardStatusText.textContent = `❌ Daily limit exceeded ($${todaySpent.toFixed(2)} / $${dailyLimit.toFixed(2)}).`;
+            xpRewardStatusText.style.color = 'var(--color-danger)';
+            if (claimBtn) {
+                claimBtn.textContent = 'Limit Exceeded';
+                claimBtn.disabled = true;
+                claimBtn.style.opacity = '0.6';
+                claimBtn.style.cursor = 'not-allowed';
+            }
+        } else {
+            xpRewardStatusText.textContent = `✨ Staying under limit! Ready to claim.`;
+            xpRewardStatusText.style.color = 'var(--color-text-secondary)';
+            if (claimBtn) {
+                claimBtn.textContent = 'Claim +' + (this.xpConfig.financeBonus || 50) + ' XP';
+                claimBtn.disabled = false;
+                claimBtn.style.opacity = '1';
+                claimBtn.style.cursor = 'pointer';
+            }
+        }
+
+        // Render expense history
+        const listEmpty = document.getElementById('expenseListEmpty');
+        const listContent = document.getElementById('expenseListContent');
+
+        if (listEmpty && listContent) {
+            if (this.financeData.expenses.length === 0) {
+                listEmpty.style.display = 'block';
+                listContent.style.display = 'none';
+            } else {
+                listEmpty.style.display = 'none';
+                listContent.style.display = 'flex';
+                listContent.innerHTML = '';
+
+                // Sort expenses descending by date
+                const sortedExpenses = [...this.financeData.expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                sortedExpenses.forEach(exp => {
+                    const row = document.createElement('div');
+                    row.className = 'expense-row';
+
+                    const dateObj = new Date(exp.date);
+                    const dateFormatted = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                    row.innerHTML = `
+                        <div class="expense-details">
+                            <span class="expense-name">${this.escapeHtml(exp.name)}</span>
+                            <div class="expense-meta">
+                                <span class="expense-tag">${this.escapeHtml(exp.category)}</span>
+                                <span>•</span>
+                                <span>${dateFormatted}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+                            <span class="expense-amount">$${exp.amount.toFixed(2)}</span>
+                            <button class="btn-icon" onclick="app.deleteExpense('${exp.id}')" title="Delete purchase log" style="color: var(--color-danger); padding: 4px; border: none; background: transparent; cursor: pointer; font-size: 1.25rem;">
+                                &times;
+                            </button>
+                        </div>
+                    `;
+                    listContent.appendChild(row);
+                });
+            }
+        }
+    }
+
+    // User Category Customizer Methods
+    toggleCategoryCustomizer(event) {
+        if (event) event.preventDefault();
+        const customizer = document.getElementById('categoryCustomizer');
+        if (!customizer) return;
+
+        if (customizer.style.display === 'none') {
+            customizer.style.display = 'block';
+            this.renderCustomizerCategories();
+        } else {
+            customizer.style.display = 'none';
+        }
+    }
+
+    renderCustomizerCategories() {
+        const list = document.getElementById('customizerCategoriesList');
+        if (!list) return;
+
+        list.innerHTML = this.financeData.categories.map(cat => {
+            return `
+                <div class="preset-tag-btn" style="cursor: default; display: inline-flex; align-items: center; gap: 4px;">
+                    <span>${cat}</span>
+                    <span onclick="app.removeCustomCategory('${this.escapeHtml(cat)}')" style="color: var(--color-danger); cursor: pointer; font-weight: 800; font-size: 1.15rem; margin-left: 2px; line-height: 1;">&times;</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    addCustomCategory() {
+        const input = document.getElementById('newCategoryInput');
+        if (!input) return;
+
+        const val = input.value.trim();
+        if (!val) return;
+
+        if (!this.financeData.categories.includes(val)) {
+            this.financeData.categories.push(val);
+            this.saveData('financeData', this.financeData);
+            input.value = '';
+            this.renderCustomizerCategories();
+            this.renderFinanceDashboard();
+        }
+    }
+
+    removeCustomCategory(cat) {
+        this.financeData.categories = this.financeData.categories.filter(c => c !== cat);
+        this.saveData('financeData', this.financeData);
+        this.renderCustomizerCategories();
+        this.renderFinanceDashboard();
+    }
+
+    // Admin Panel Finance Manager Methods
+    async loadAdminFinancePanel() {
+        // 1. XP Reward
+        const rewardInput = document.getElementById('adminFinanceXPReward');
+        if (rewardInput) {
+            rewardInput.value = this.xpConfig.financeBonus || 50;
+        }
+
+        // 2. Categories
+        this.defaultCategories = this.loadData('adminDefaultCategories') || ['Coffee ☕', 'Diet & Groceries 🍏', 'Gaming 🎮', 'PC Accessories 💻', 'Transportation 🚗'];
+        this.renderAdminFinanceCategories();
+
+        // 3. Platform Metrics
+        let totalBudget = 0;
+        let totalExpensesCount = 0;
+        let totalExpensesAmt = 0;
+        let userCount = 0;
+
+        const avgBudgetEl = document.getElementById('adminAvgBudget');
+        const totalExpensesEl = document.getElementById('adminTotalExpenses');
+        const totalTransactionsEl = document.getElementById('adminTotalTransactionsCount');
+
+        if (avgBudgetEl && totalExpensesEl && totalTransactionsEl) {
+            avgBudgetEl.textContent = 'Calculating...';
+            totalExpensesEl.textContent = 'Calculating...';
+            totalTransactionsEl.textContent = 'Calculating...';
+
+            if (window.db && window.firestoreUtils) {
+                const { collection, getDocs } = window.firestoreUtils;
+                try {
+                    const snapshot = await getDocs(collection(window.db, "users"));
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        if (data.financeData) {
+                            userCount++;
+                            totalBudget += parseFloat(data.financeData.monthlyIncome || 0);
+                            if (data.financeData.expenses) {
+                                totalExpensesCount += data.financeData.expenses.length;
+                                totalExpensesAmt += data.financeData.expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+                            }
+                        }
+                    });
+                } catch(e) {
+                    console.error("Error loading global metrics from DB:", e);
+                }
+            }
+
+            if (userCount === 0) {
+                // Fallback to local user
+                totalBudget = this.financeData.monthlyIncome || 0;
+                totalExpensesCount = this.financeData.expenses ? this.financeData.expenses.length : 0;
+                totalExpensesAmt = this.financeData.expenses ? this.financeData.expenses.reduce((sum, e) => sum + e.amount, 0) : 0;
+                userCount = 1;
+            }
+
+            const avgBudget = totalBudget / userCount;
+            avgBudgetEl.textContent = `$${avgBudget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            totalExpensesEl.textContent = `$${totalExpensesAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            totalTransactionsEl.textContent = totalExpensesCount;
+        }
+    }
+
+    renderAdminFinanceCategories() {
+        const list = document.getElementById('adminDefaultCategoriesList');
+        if (!list) return;
+
+        list.innerHTML = this.defaultCategories.map(cat => {
+            return `
+                <div class="preset-tag-btn" style="cursor: default; display: inline-flex; align-items: center; gap: 4px;">
+                    <span>${cat}</span>
+                    <span onclick="app.removeAdminDefaultCategory('${this.escapeHtml(cat)}')" style="color: var(--color-danger); cursor: pointer; font-weight: 800; font-size: 1.15rem; margin-left: 2px; line-height: 1;">&times;</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    handleAddDefaultCategory(event) {
+        if (event) event.preventDefault();
+        const input = document.getElementById('adminNewCategoryInput');
+        if (!input) return;
+
+        const val = input.value.trim();
+        if (!val) return;
+
+        if (!this.defaultCategories.includes(val)) {
+            this.defaultCategories.push(val);
+            this.saveData('adminDefaultCategories', this.defaultCategories);
+            input.value = '';
+            this.renderAdminFinanceCategories();
+        }
+    }
+
+    removeAdminDefaultCategory(cat) {
+        this.defaultCategories = this.defaultCategories.filter(c => c !== cat);
+        this.saveData('adminDefaultCategories', this.defaultCategories);
+        this.renderAdminFinanceCategories();
+    }
+
+    async saveAdminFinanceSettings(event) {
+        if (event) event.preventDefault();
+        const input = document.getElementById('adminFinanceXPReward');
+        if (!input) return;
+
+        const val = parseInt(input.value) || 50;
+
+        try {
+            if (window.db && window.firestoreUtils) {
+                const { doc, setDoc } = window.firestoreUtils;
+                await setDoc(doc(window.db, "settings", "gamification"), {
+                    financeBonus: val
+                }, { merge: true });
+            }
+            this.xpConfig.financeBonus = val;
+            alert("Finance scaling configurations updated globally!");
+            await this.loadGlobalSettings();
+        } catch (err) {
+            console.error("Error saving dynamic finance scaling settings:", err);
+            alert("Failed to save scaling configurations.");
+        }
     }
 }
 
