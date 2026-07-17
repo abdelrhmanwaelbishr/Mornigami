@@ -639,6 +639,16 @@ class ProductivityHub {
             }
         });
 
+        // Also handle the brand logo active class if it's the home page
+        const navBrand = document.getElementById('navBrand');
+        if (navBrand) {
+            if (page === 'home') {
+                navBrand.classList.add('active');
+            } else {
+                navBrand.classList.remove('active');
+            }
+        }
+
         this.renderPage(page);
     }
 
@@ -3113,7 +3123,7 @@ pause
                 }
             }
             if (this.currentPage === 'auth') {
-                this.switchPage('habits');
+                this.switchPage('home');
             }
 
             // 2. جلب بيانات الحساب الجديد من السيرفر
@@ -3596,7 +3606,7 @@ pause
                         authMessage.style.display = 'block';
                     }
                     setTimeout(() => {
-                        this.switchPage('habits');
+                        this.switchPage('home');
                     }, 1000);
                 };
 
@@ -4365,7 +4375,7 @@ pause
         if (window.firebaseAuth && window.auth) {
             window.firebaseAuth.signOut(window.auth)
                 .then(() => {
-                    this.switchPage('habits');
+                    this.switchPage('home');
                 })
                 .catch(err => console.error("Lockout signout error:", err));
         }
