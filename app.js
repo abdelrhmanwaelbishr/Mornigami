@@ -3094,6 +3094,52 @@ pause
         const authOverlay = document.getElementById('authOverlay');
 
         if (user) {
+            // Fetch user profile first to check soft-deleted status
+            let isUserDeleted = false;
+            if (window.db && window.firestoreUtils) {
+                const { doc, getDoc } = window.firestoreUtils;
+                try {
+                    const userRef = doc(window.db, "users", user.uid);
+                    const docSnap = await getDoc(userRef);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        if (data.status === 'deleted' || data.isDeleted === true) {
+                            isUserDeleted = true;
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error checking soft delete state on startup:", err);
+                }
+            }
+
+            if (isUserDeleted) {
+                if (window.firebaseAuth && window.auth) {
+                    await window.firebaseAuth.signOut(window.auth).catch(err => console.error("Error signing out banned user:", err));
+                }
+                
+                this.clearAllLocalData();
+                this.currentUser = null;
+
+                // Switch page to auth to render elements
+                this.switchPage('auth');
+
+                const authMessage = document.getElementById('authMessage');
+                if (authMessage) {
+                    authMessage.textContent = "This account has been deleted or disabled by an administrator.";
+                    authMessage.className = 'auth-message error';
+                    authMessage.style.display = 'block';
+                }
+
+                if (authOverlay) {
+                    authOverlay.style.display = 'flex';
+                    authOverlay.style.opacity = '1';
+                }
+                
+                if (loginBtn) loginBtn.style.display = 'block';
+                if (userMenuWrapper) userMenuWrapper.style.display = 'none';
+                return;
+            }
+
             this.userBadges = [];
             this.updateBadgeUI();
             // Hide the mandatory auth overlay with a smooth transition
@@ -4161,9 +4207,13 @@ pause
                 : `<span class="admin-user-avatar-fallback">${initial}</span>`;
 
             const isCurrentUser = user.uid === currentUid;
-            const rowClass = isCurrentUser ? 'admin-user-row is-current-user' : 'admin-user-row';
-            const roleDisabled = isCurrentUser ? 'disabled' : '';
-            const statusDisabled = isCurrentUser ? 'disabled' : '';
+            const isDeleted = user.status === 'deleted';
+            let rowClass = isCurrentUser ? 'admin-user-row is-current-user' : 'admin-user-row';
+            if (isDeleted) {
+                rowClass += ' is-deleted';
+            }
+            const roleDisabled = isCurrentUser || isDeleted ? 'disabled' : '';
+            const statusDisabled = isCurrentUser || isDeleted ? 'disabled' : '';
 
             // Format last active date
             let lastActiveStr = 'Never active';
@@ -4174,12 +4224,16 @@ pause
             // Badges string
             const badgesStr = user.badges.length > 0 ? user.badges.join(', ') : 'None';
 
+            const userNameSuffix = isCurrentUser 
+                ? ' <span style="font-size: 10px; color: var(--color-primary); font-weight: 600;">(You)</span>' 
+                : (isDeleted ? ' <span style="font-size: 10px; color: var(--color-danger); font-weight: 600;">(Deleted/Banned)</span>' : '');
+
             return `
-                <div class="${rowClass}" data-uid="${user.uid}" data-status="${user.status}">
+                <div class="${rowClass}" data-uid="${user.uid}" data-status="${user.status}" style="${isDeleted ? 'border-color: var(--color-danger-light); background: var(--color-danger-bg); opacity: 0.7;' : ''}">
                     <div class="admin-user-avatar">${avatarHTML}</div>
                     <div class="admin-user-info">
-                        <div class="admin-user-name" style="font-weight: 700;">${this.escapeHtml(user.displayName || 'No Name')}${isCurrentUser ? ' <span style="font-size: 10px; color: var(--color-primary); font-weight: 600;">(You)</span>' : ''}</div>
-                        <div class="admin-user-email">${this.escapeHtml(user.email || 'N/A')}</div>
+                        <div class="admin-user-name" style="font-weight: 700; ${isDeleted ? 'text-decoration: line-through;' : ''}">${this.escapeHtml(user.displayName || 'No Name')}${userNameSuffix}</div>
+                        <div class="admin-user-email">${this.escapeHtml(user.email || 'Deleted User')}</div>
                     </div>
                     <div>
                         <label class="admin-col-label">Role</label>
@@ -4190,15 +4244,15 @@ pause
                     </div>
                     <div>
                         <label class="admin-col-label">Level</label>
-                        <input type="number" class="admin-input" data-field="level" value="${user.userLevel}" min="1">
+                        <input type="number" class="admin-input" data-field="level" value="${user.userLevel}" min="1" ${isDeleted ? 'disabled' : ''}>
                     </div>
                     <div>
                         <label class="admin-col-label">XP</label>
-                        <input type="number" class="admin-input" data-field="xp" value="${user.userXP}" min="0">
+                        <input type="number" class="admin-input" data-field="xp" value="${user.userXP}" min="0" ${isDeleted ? 'disabled' : ''}>
                     </div>
                     <div>
                         <label class="admin-col-label">Spendable XP</label>
-                        <input type="number" class="admin-input" data-field="spendableXp" value="${Math.max(0, user.userXP - (user.spentXP || 0))}" min="0">
+                        <input type="number" class="admin-input" data-field="spendableXp" value="${Math.max(0, user.userXP - (user.spentXP || 0))}" min="0" ${isDeleted ? 'disabled' : ''}>
                     </div>
                     <div>
                         <label class="admin-col-label">Status</label>
@@ -4206,13 +4260,14 @@ pause
                             <option value="active" ${user.status === 'active' ? 'selected' : ''}>Active</option>
                             <option value="suspended" ${user.status === 'suspended' ? 'selected' : ''}>Suspended</option>
                             <option value="banned" ${user.status === 'banned' ? 'selected' : ''}>Banned</option>
+                            ${isDeleted ? '<option value="deleted" selected>Deleted/Banned</option>' : ''}
                         </select>
                     </div>
                     <div style="display: flex; gap: 4px; align-self: end;">
-                        <button class="admin-save-btn" onclick="app.saveUserData('${user.uid}')">Save</button>
+                        <button class="admin-save-btn" onclick="app.saveUserData('${user.uid}')" ${isDeleted ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>Save</button>
                         <button class="btn-action-sm" onclick="app.toggleActivityLog('${user.uid}')" title="Activity Logs">📝 Logs</button>
-                        <button class="btn-action-sm" onclick="app.sendAdminPasswordReset('${user.email}')" title="Password Reset">🔑 Reset</button>
-                        <button class="btn-action-danger-sm" ${isCurrentUser ? 'disabled' : ''} onclick="app.deleteUserAccount('${user.uid}')" title="Delete User">🗑️ Delete</button>
+                        <button class="btn-action-sm" onclick="app.sendAdminPasswordReset('${user.email}')" title="Password Reset" ${isDeleted ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>🔑 Reset</button>
+                        <button class="btn-action-danger-sm" ${isCurrentUser || isDeleted ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} onclick="app.deleteUserAccount('${user.uid}')" title="Delete User">${isDeleted ? '🚫 Banned' : '🗑️ Delete'}</button>
                     </div>
 
                     <!-- Collapsible Activity Panel -->
@@ -4338,12 +4393,33 @@ pause
 
     async deleteUserAccount(uid) {
         if (!window.db || !window.firestoreUtils) return;
-        if (!confirm("⚠️ WARNING: Are you sure you want to permanently delete this user document? This action is irreversible.")) return;
+        if (!confirm("⚠️ WARNING: Are you sure you want to delete this user account? The user will be banned, their username freed, and personal details removed.")) return;
 
         try {
-            const { doc, deleteDoc } = window.firestoreUtils;
-            await deleteDoc(doc(window.db, "users", uid));
-            alert("User document successfully deleted.");
+            const { doc, getDoc, setDoc, deleteDoc } = window.firestoreUtils;
+            
+            // 1. Fetch user data to find their username
+            const userRef = doc(window.db, "users", uid);
+            const userSnap = await getDoc(userRef);
+            
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                const username = userData.displayName || userData.username;
+                if (username) {
+                    // Delete username document from the usernames collection
+                    const usernameRef = doc(window.db, "usernames", username.toLowerCase());
+                    await deleteDoc(usernameRef).catch(err => console.error("Error deleting usernames document:", err));
+                }
+            }
+
+            // 2. Overwrite the user's main document in the users collection to remove personal data
+            await setDoc(userRef, {
+                status: 'deleted',
+                role: 'user',
+                isDeleted: true
+            }, { merge: false });
+
+            alert("User account successfully deleted and banned.");
             this.loadAllUsers();
         } catch (err) {
             console.error("Error deleting user document:", err);
