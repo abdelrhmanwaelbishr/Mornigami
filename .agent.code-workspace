@@ -1,11 +1,11 @@
 {
 	"folders": [
 		{
-			"name": "Habit-Tracker",
+			"name": "Mornigami",
 			"path": "."
 		}
 	],
 	"settings": {
-		"liveServer.settings.multiRootWorkspaceName": "Habit-Tracker"
+		"liveServer.settings.multiRootWorkspaceName": "Mornigami"
 	}
 }
