@@ -5764,7 +5764,16 @@ pause
         this.financeData.monthYear = startDateVal.substring(0, 7);
         this.financeData.startingDate = startDateVal;
         this.financeData.currency = currencyVal;
-        this.financeData.expenses = [];
+        this.financeData.expenses = [{
+            id: 'txn_init_' + Date.now(),
+            name: 'Initial Monthly Budget',
+            description: 'Starting monthly income allocation',
+            amount: income,
+            category: 'Income 💵',
+            date: new Date(startDateVal).toISOString(),
+            isEssential: true,
+            type: 'income'
+        }];
         this.financeData.xpBonusClaimedDates = {};
         this.financeData.savingsBalance = 0;
         this.financeData.savingsGoals = [];
@@ -5909,9 +5918,28 @@ pause
     }
 
     deleteExpense(id) {
-        if (confirm("Are you sure you want to delete this purchase log?")) {
+        const item = this.financeData.expenses.find(e => e.id === id);
+        if (!item) return;
+
+        const isIncome = item.type === 'income';
+        const currency = this.financeData.currency || 'EGP';
+        const msg = isIncome 
+            ? `Are you sure you want to delete this income entry (+${currency} ${item.amount.toFixed(2)})? This will reduce your monthly budget.`
+            : "Are you sure you want to delete this transaction?";
+
+        if (confirm(msg)) {
+            if (isIncome) {
+                this.financeData.monthlyIncome = Math.max(0, (this.financeData.monthlyIncome || 0) - item.amount);
+                const now = new Date();
+                const lastDayOfMonthObj = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                const remainingDays = lastDayOfMonthObj.getDate() - now.getDate() + 1;
+                const totalSpent = this.financeData.expenses.filter(e => e.id !== id && e.type !== 'income').reduce((sum, e) => sum + e.amount, 0);
+                const remainingBalance = this.financeData.monthlyIncome - totalSpent;
+                this.financeData.dailyBudget = parseFloat((remainingBalance / Math.max(1, remainingDays)).toFixed(2));
+            }
+
             this.financeData.expenses = this.financeData.expenses.filter(e => e.id !== id);
-            this.saveData('financeData', this.financeData);
+            this.saveFinanceData();
             this.renderFinanceDashboard();
         }
     }
@@ -6040,16 +6068,33 @@ pause
             expDateInput.value = new Date().toISOString().substring(0, 10);
         }
 
+        // Auto-migrate existing budgets: log initial budget entry if not present
+        if (this.financeData.monthlyIncome > 0 && (!this.financeData.expenses || !this.financeData.expenses.some(e => e.type === 'income'))) {
+            const startDateStr = this.financeData.startingDate || (this.financeData.monthYear ? `${this.financeData.monthYear}-01` : new Date().toISOString().substring(0, 10));
+            if (!this.financeData.expenses) this.financeData.expenses = [];
+            this.financeData.expenses.unshift({
+                id: 'txn_init_' + Date.now(),
+                name: 'Initial Monthly Budget',
+                description: 'Starting monthly income allocation',
+                amount: this.financeData.monthlyIncome,
+                category: 'Income 💵',
+                date: new Date(startDateStr).toISOString(),
+                isEssential: true,
+                type: 'income'
+            });
+            this.saveFinanceData();
+        }
+
         const income = this.financeData.monthlyIncome;
         const dailyLimit = this.financeData.dailyBudget;
         const currency = this.financeData.currency || 'EGP';
 
-        // Calculate spends
+        // Calculate spends (filtering out income entries)
         const todayDateStr = new Date().toDateString();
-        const todayExpenses = this.financeData.expenses.filter(e => new Date(e.date).toDateString() === todayDateStr);
+        const todayExpenses = this.financeData.expenses.filter(e => e.type !== 'income' && new Date(e.date).toDateString() === todayDateStr);
         const todaySpent = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
 
-        const totalSpent = this.financeData.expenses.reduce((sum, e) => sum + e.amount, 0);
+        const totalSpent = this.financeData.expenses.filter(e => e.type !== 'income').reduce((sum, e) => sum + e.amount, 0);
         const remainingBalance = income - totalSpent;
 
         // Render standard values
@@ -6171,8 +6216,8 @@ pause
                 }
             }
 
-            // Calculate yesterday's spent
-            const yesterdayExpenses = this.financeData.expenses.filter(e => new Date(e.date).toDateString() === yesterdayStr);
+            // Calculate yesterday's spent (excluding income items)
+            const yesterdayExpenses = this.financeData.expenses.filter(e => e.type !== 'income' && new Date(e.date).toDateString() === yesterdayStr);
             const yesterdaySpent = yesterdayExpenses.reduce((sum, e) => sum + e.amount, 0);
 
             const isClaimed = this.financeData.lastClaimedBonusDate === yesterdayStr;
@@ -6195,7 +6240,7 @@ pause
             }
         }
 
-        // Render expense history
+        // Render expense history / transaction log
         const listEmpty = document.getElementById('expenseListEmpty');
         const listContent = document.getElementById('expenseListContent');
 
@@ -6219,27 +6264,41 @@ pause
                     const dateFormatted = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
                     const detailsStr = exp.description ? ` <span style="font-size: 11px; font-weight: normal; color: var(--color-text-secondary); margin-left: 4px;">- ${this.escapeHtml(exp.description)}</span>` : '';
 
-                    const isEssential = this.isExpenseEssential(exp);
-                    const badgeText = isEssential ? '⭐️ Need' : '💭 Want';
-                    const badgeTitle = isEssential ? 'Marked as Need. Click to toggle to Want.' : 'Marked as Want. Click to toggle to Need.';
-                    const badgeClass = isEssential ? 'category-badge essential' : 'category-badge non-essential';
+                    const isIncome = exp.type === 'income';
+
+                    let badgeMarkup = '';
+                    let amountMarkup = '';
+
+                    if (isIncome) {
+                        badgeMarkup = `<span class="category-badge" style="background: rgba(34, 197, 94, 0.15); color: #16a34a; border: 1px solid #22c55e; border-radius: 4px; padding: 1.5px 6px; font-size: 9px; font-weight: 700;">💵 Income</span>`;
+                        amountMarkup = `<span class="expense-amount" style="color: var(--color-success); font-weight: 800;">+ ${currency} ${exp.amount.toFixed(2)}</span>`;
+                    } else {
+                        const isEssential = this.isExpenseEssential(exp);
+                        const badgeText = isEssential ? '⭐️ Need' : '💭 Want';
+                        const badgeTitle = isEssential ? 'Marked as Need. Click to toggle to Want.' : 'Marked as Want. Click to toggle to Need.';
+                        const badgeClass = isEssential ? 'category-badge essential' : 'category-badge non-essential';
+
+                        badgeMarkup = `
+                            <button type="button" onclick="app.toggleExpenseEssential('${exp.id}')" class="${badgeClass}" title="${badgeTitle}" style="border: none; outline: none; border-radius: 4px; padding: 1.5px 5px; font-size: 9px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center;">
+                                ${badgeText}
+                            </button>`;
+                        amountMarkup = `<span class="expense-amount">- ${currency} ${exp.amount.toFixed(2)}</span>`;
+                    }
 
                     row.innerHTML = `
                         <div class="expense-details">
                             <span class="expense-name">${this.escapeHtml(exp.name)}${detailsStr}</span>
                             <div class="expense-meta">
-                                <span class="expense-tag">${this.escapeHtml(exp.category)}</span>
+                                <span class="expense-tag">${this.escapeHtml(exp.category || 'General')}</span>
                                 <span>•</span>
-                                <button type="button" onclick="app.toggleExpenseEssential('${exp.id}')" class="${badgeClass}" title="${badgeTitle}" style="border: none; outline: none; border-radius: 4px; padding: 1.5px 5px; font-size: 9px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center;">
-                                    ${badgeText}
-                                </button>
+                                ${badgeMarkup}
                                 <span>•</span>
                                 <span>${dateFormatted}</span>
                             </div>
                         </div>
                         <div style="display: flex; align-items: center; gap: var(--spacing-md);">
-                            <span class="expense-amount">${currency} ${exp.amount.toFixed(2)}</span>
-                            <button class="btn-icon" onclick="app.deleteExpense('${exp.id}')" title="Delete purchase log" style="color: var(--color-danger); padding: 4px; border: none; background: transparent; cursor: pointer; font-size: 1.25rem;">
+                            ${amountMarkup}
+                            <button class="btn-icon" onclick="app.deleteExpense('${exp.id}')" title="Delete transaction" style="color: var(--color-danger); padding: 4px; border: none; background: transparent; cursor: pointer; font-size: 1.25rem;">
                                 &times;
                             </button>
                         </div>
@@ -6329,7 +6388,7 @@ pause
         if (!container) return;
 
         const currency = this.financeData.currency || 'EGP';
-        const expenses = this.financeData.expenses || [];
+        const expenses = (this.financeData.expenses || []).filter(e => e.type !== 'income');
         const income = this.financeData.monthlyIncome || 0;
 
         if (expenses.length === 0) {
@@ -6777,13 +6836,24 @@ pause
         }
 
         this.financeData.monthlyIncome += amount;
+        if (!this.financeData.expenses) this.financeData.expenses = [];
+        this.financeData.expenses.push({
+            id: 'txn_fund_' + Date.now(),
+            name: 'Added Funds',
+            description: 'Mid-month budget boost',
+            amount: amount,
+            category: 'Income 💵',
+            date: new Date().toISOString(),
+            isEssential: true,
+            type: 'income'
+        });
 
         // Recalculate dailyBudget using remaining days in the month from today
         const now = new Date();
         const lastDayOfMonthObj = new Date(now.getFullYear(), now.getMonth() + 1, 0);
         const remainingDays = lastDayOfMonthObj.getDate() - now.getDate() + 1; // inclusive of today
 
-        const totalSpent = this.financeData.expenses.reduce((sum, e) => sum + e.amount, 0);
+        const totalSpent = this.financeData.expenses.filter(e => e.type !== 'income').reduce((sum, e) => sum + e.amount, 0);
         const remainingBalance = this.financeData.monthlyIncome - totalSpent;
         this.financeData.dailyBudget = parseFloat((remainingBalance / Math.max(1, remainingDays)).toFixed(2));
 
@@ -6792,57 +6862,85 @@ pause
         alert(`Successfully injected ${currency} ${amount.toFixed(2)} into your monthly budget!`);
     }
 
-    // Prompt-based Vault Transfer from Stat Card
+    // Custom Savings Vault Modal trigger
     showVaultTransferPrompt() {
         const currency = this.financeData.currency || 'EGP';
         const currentSavings = this.financeData.savingsBalance || 0;
-        const totalSpent = this.financeData.expenses.reduce((sum, e) => sum + e.amount, 0);
-        const remainingBalance = this.financeData.monthlyIncome - totalSpent;
+        const totalSpent = (this.financeData.expenses || []).filter(e => e.type !== 'income').reduce((sum, e) => sum + e.amount, 0);
+        const remainingBalance = (this.financeData.monthlyIncome || 0) - totalSpent;
 
-        const choice = prompt(
-            `🏦 Savings Vault (${currency} ${currentSavings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})\n` +
-            `Available Budget: ${currency} ${remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n\n` +
-            `Type 1 to DEPOSIT (Budget -> Vault)\n` +
-            `Type 2 to WITHDRAW (Vault -> Budget):`
-        );
+        const vaultBalEl = document.getElementById('modalVaultBalance');
+        const budgetBalEl = document.getElementById('modalAvailableBudget');
+        const suffixEl = document.getElementById('vaultModalCurrencySuffix');
+        const amountInput = document.getElementById('vaultModalAmount');
 
-        if (!choice) return;
-        const action = choice.trim();
+        if (vaultBalEl) {
+            vaultBalEl.textContent = `${currency} ${currentSavings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+        if (budgetBalEl) {
+            budgetBalEl.textContent = `${currency} ${remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+        if (suffixEl) {
+            suffixEl.textContent = currency;
+        }
+        if (amountInput) {
+            amountInput.value = '';
+        }
 
-        if (action === '1') {
-            const amountStr = prompt(`Enter amount to DEPOSIT into Savings Vault (${currency}):`);
-            if (!amountStr) return;
-            const amount = parseFloat(amountStr);
-            if (isNaN(amount) || amount <= 0) {
-                alert("Invalid amount entered.");
-                return;
-            }
+        this.setVaultModalDirection('deposit');
+        this.openModal('savingsVaultModal', false);
+    }
+
+    // Toggle deposit vs withdraw mode in custom Savings Vault Modal
+    setVaultModalDirection(dir) {
+        const hiddenDir = document.getElementById('vaultModalDirection');
+        const depositBtn = document.getElementById('vaultModalDepositBtn');
+        const withdrawBtn = document.getElementById('vaultModalWithdrawBtn');
+        const submitBtnText = document.querySelector('#vaultModalSubmitBtn span');
+
+        if (hiddenDir) hiddenDir.value = dir;
+
+        if (dir === 'deposit') {
+            if (depositBtn) depositBtn.classList.add('active');
+            if (withdrawBtn) withdrawBtn.classList.remove('active');
+            if (submitBtnText) submitBtnText.textContent = 'Confirm Deposit';
+        } else {
+            if (withdrawBtn) withdrawBtn.classList.add('active');
+            if (depositBtn) depositBtn.classList.remove('active');
+            if (submitBtnText) submitBtnText.textContent = 'Confirm Withdrawal';
+        }
+    }
+
+    // Form submission handler for custom Savings Vault Modal
+    handleSavingsVaultModalSubmit(event) {
+        if (event) event.preventDefault();
+
+        const dirInput = document.getElementById('vaultModalDirection');
+        const amountInput = document.getElementById('vaultModalAmount');
+        if (!dirInput || !amountInput) return;
+
+        const direction = dirInput.value;
+        const amount = parseFloat(amountInput.value);
+        if (isNaN(amount) || amount <= 0) {
+            alert("Please enter a valid positive amount.");
+            return;
+        }
+
+        const currency = this.financeData.currency || 'EGP';
+        const currentSavings = this.financeData.savingsBalance || 0;
+        const totalSpent = (this.financeData.expenses || []).filter(e => e.type !== 'income').reduce((sum, e) => sum + e.amount, 0);
+        const remainingBalance = (this.financeData.monthlyIncome || 0) - totalSpent;
+
+        if (direction === 'deposit') {
             if (amount > remainingBalance) {
-                alert(`Insufficient funds! Your available budget is ${currency} ${remainingBalance.toFixed(2)}.`);
+                alert(`Insufficient funds! Your available budget is only ${currency} ${remainingBalance.toFixed(2)}.`);
                 return;
             }
             this.financeData.monthlyIncome -= amount;
             this.financeData.savingsBalance = currentSavings + amount;
-
-            const now = new Date();
-            const lastDayOfMonthObj = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            const remainingDays = lastDayOfMonthObj.getDate() - now.getDate() + 1;
-            const newRemaining = this.financeData.monthlyIncome - totalSpent;
-            this.financeData.dailyBudget = parseFloat((newRemaining / Math.max(1, remainingDays)).toFixed(2));
-
-            this.saveFinanceData();
-            this.renderFinanceDashboard();
-            alert(`Successfully deposited ${currency} ${amount.toFixed(2)} into your Savings Vault! 📥`);
-        } else if (action === '2') {
+        } else if (direction === 'withdraw') {
             if (currentSavings <= 0) {
                 alert("Your Savings Vault is currently empty.");
-                return;
-            }
-            const amountStr = prompt(`Enter amount to WITHDRAW from Savings Vault (${currency}):`);
-            if (!amountStr) return;
-            const amount = parseFloat(amountStr);
-            if (isNaN(amount) || amount <= 0) {
-                alert("Invalid amount entered.");
                 return;
             }
             if (amount > currentSavings) {
@@ -6850,20 +6948,19 @@ pause
                 return;
             }
             this.financeData.savingsBalance = currentSavings - amount;
-            this.financeData.monthlyIncome += amount;
-
-            const now = new Date();
-            const lastDayOfMonthObj = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            const remainingDays = lastDayOfMonthObj.getDate() - now.getDate() + 1;
-            const newRemaining = this.financeData.monthlyIncome - totalSpent;
-            this.financeData.dailyBudget = parseFloat((newRemaining / Math.max(1, remainingDays)).toFixed(2));
-
-            this.saveFinanceData();
-            this.renderFinanceDashboard();
-            alert(`Successfully withdrew ${currency} ${amount.toFixed(2)} from Savings Vault back to your budget! 📤`);
-        } else {
-            alert("Invalid option selected. Please enter 1 or 2.");
+            this.financeData.monthlyIncome = (this.financeData.monthlyIncome || 0) + amount;
         }
+
+        // Recalculate daily budget using remaining days in the month
+        const now = new Date();
+        const lastDayOfMonthObj = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const remainingDays = lastDayOfMonthObj.getDate() - now.getDate() + 1;
+        const newRemaining = this.financeData.monthlyIncome - totalSpent;
+        this.financeData.dailyBudget = parseFloat((newRemaining / Math.max(1, remainingDays)).toFixed(2));
+
+        this.saveFinanceData();
+        this.renderFinanceDashboard();
+        this.closeModal('savingsVaultModal');
     }
 
     // Mid-Month Add Funds
@@ -6876,13 +6973,24 @@ pause
         if (isNaN(amount) || amount <= 0) return;
 
         this.financeData.monthlyIncome += amount;
+        if (!this.financeData.expenses) this.financeData.expenses = [];
+        this.financeData.expenses.push({
+            id: 'txn_fund_' + Date.now(),
+            name: 'Added Funds',
+            description: 'Mid-month budget boost',
+            amount: amount,
+            category: 'Income 💵',
+            date: new Date().toISOString(),
+            isEssential: true,
+            type: 'income'
+        });
 
         // Recalculate dailyBudget using remaining days in the month from today
         const now = new Date();
         const lastDayOfMonthObj = new Date(now.getFullYear(), now.getMonth() + 1, 0);
         const remainingDays = lastDayOfMonthObj.getDate() - now.getDate() + 1; // inclusive of today
 
-        const totalSpent = this.financeData.expenses.reduce((sum, e) => sum + e.amount, 0);
+        const totalSpent = this.financeData.expenses.filter(e => e.type !== 'income').reduce((sum, e) => sum + e.amount, 0);
         const remainingBalance = this.financeData.monthlyIncome - totalSpent;
         this.financeData.dailyBudget = parseFloat((remainingBalance / Math.max(1, remainingDays)).toFixed(2));
 
@@ -6903,7 +7011,7 @@ pause
         if (isNaN(amount) || amount <= 0) return;
 
         const direction = directionSelect.value; // 'deposit' or 'withdraw'
-        const totalSpent = this.financeData.expenses.reduce((sum, e) => sum + e.amount, 0);
+        const totalSpent = (this.financeData.expenses || []).filter(e => e.type !== 'income').reduce((sum, e) => sum + e.amount, 0);
         const currency = this.financeData.currency || 'EGP';
 
         if (direction === 'deposit') {

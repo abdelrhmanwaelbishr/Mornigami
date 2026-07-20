@@ -667,6 +667,72 @@
         </div>
     </div>
 
+    <!-- Savings Vault Modal -->
+    <div id="savingsVaultModal" class="modal">
+        <div class="modal-backdrop" onclick="app.closeModal('savingsVaultModal')"></div>
+        <div class="modal-container">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">🏦 Savings Vault Transaction</h2>
+                    <button type="button" class="modal-close" onclick="app.closeModal('savingsVaultModal')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Balances Overview Card -->
+                <div style="padding: 0 var(--spacing-xl); margin-top: var(--spacing-lg);">
+                    <div style="background: var(--color-bg); border: 1.5px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--spacing-md); display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm); text-align: center;">
+                        <div>
+                            <span style="font-size: 10px; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: block;">Vault Balance</span>
+                            <span id="modalVaultBalance" style="font-weight: 800; font-size: var(--font-size-lg); color: var(--color-success); display: block; margin-top: 2px;">EGP 0.00</span>
+                        </div>
+                        <div style="border-left: 1.5px solid var(--color-border);">
+                            <span style="font-size: 10px; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: block;">Available Budget</span>
+                            <span id="modalAvailableBudget" style="font-weight: 800; font-size: var(--font-size-lg); color: var(--color-primary); display: block; margin-top: 2px;">EGP 0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="savingsVaultModalForm" class="modal-form" onsubmit="app.handleSavingsVaultModalSubmit(event)">
+                    <input type="hidden" id="vaultModalDirection" value="deposit">
+
+                    <!-- Transaction Type Toggle -->
+                    <div class="form-group">
+                        <label class="form-label">Transaction Type</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <button type="button" id="vaultModalDepositBtn" class="form-classify-btn active" onclick="app.setVaultModalDirection('deposit')" style="padding: 10px var(--spacing-md); font-size: var(--font-size-xs); font-weight: 700; border-radius: var(--radius-md); cursor: pointer; border: 1.5px solid var(--color-border); background: var(--color-surface); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                📥 Deposit to Vault
+                            </button>
+                            <button type="button" id="vaultModalWithdrawBtn" class="form-classify-btn" onclick="app.setVaultModalDirection('withdraw')" style="padding: 10px var(--spacing-md); font-size: var(--font-size-xs); font-weight: 700; border-radius: var(--radius-md); cursor: pointer; border: 1.5px solid var(--color-border); background: var(--color-surface); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                📤 Withdraw to Budget
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Amount Field with Currency Suffix -->
+                    <div class="form-group">
+                        <label for="vaultModalAmount" class="form-label">Amount</label>
+                        <div class="input-with-suffix">
+                            <input type="number" id="vaultModalAmount" class="form-input" placeholder="0.00" step="0.01" min="0.01" required autocomplete="off">
+                            <span class="input-suffix" id="vaultModalCurrencySuffix">EGP</span>
+                        </div>
+                    </div>
+
+                    <!-- Modal Action Buttons -->
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="app.closeModal('savingsVaultModal')">Cancel</button>
+                        <button type="submit" class="btn-primary" id="vaultModalSubmitBtn" style="background: var(--color-success); border-color: var(--color-success);">
+                            <span>Confirm Deposit</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Page Templates -->
     <template id="homePageTemplate">
         <header class="app-header">
@@ -1068,13 +1134,13 @@
                             </div>
                         </div>
 
-                        <!-- Logged Purchases List -->
+                        <!-- Logged Transactions List -->
                         <div class="finance-card">
-                            <h3 class="finance-card-title">📋 Logged Purchases</h3>
+                            <h3 class="finance-card-title">📋 Logged Transactions</h3>
                             <div class="expense-list-container">
                                 <div id="expenseListEmpty" style="padding: var(--spacing-xl) 0; text-align: center; color: var(--color-text-tertiary); font-size: var(--font-size-sm);">
                                     <div style="font-size: 2.5rem; margin-bottom: var(--spacing-sm);">🛒</div>
-                                    <p>No purchases logged yet this month.</p>
+                                    <p>No transactions logged yet this month.</p>
                                 </div>
                                 <div id="expenseListContent" style="display: flex; flex-direction: column;">
                                     <!-- Rendered dynamically -->
