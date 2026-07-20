@@ -5973,6 +5973,16 @@ pause
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toDateString();
 
+        const startingDateStr = this.financeData.startingDate || (this.financeData.monthYear ? `${this.financeData.monthYear}-01` : '');
+        if (startingDateStr) {
+            const [sYear, sMonth, sDay] = startingDateStr.split('-').map(Number);
+            const startDateObj = new Date(sYear, sMonth - 1, sDay, 0, 0, 0, 0);
+            const yesterdayDateObj = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0);
+            if (yesterdayDateObj < startDateObj) {
+                return;
+            }
+        }
+
         // Calculate yesterday's spent
         const yesterdayExpenses = this.financeData.expenses.filter(e => new Date(e.date).toDateString() === yesterdayStr);
         const yesterdaySpent = yesterdayExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -6145,6 +6155,17 @@ pause
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayStr = yesterday.toDateString();
 
+            let isYesterdayValid = true;
+            const startingDateStr = this.financeData.startingDate || (this.financeData.monthYear ? `${this.financeData.monthYear}-01` : '');
+            if (startingDateStr) {
+                const [sYear, sMonth, sDay] = startingDateStr.split('-').map(Number);
+                const startDateObj = new Date(sYear, sMonth - 1, sDay, 0, 0, 0, 0);
+                const yesterdayDateObj = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0);
+                if (yesterdayDateObj < startDateObj) {
+                    isYesterdayValid = false;
+                }
+            }
+
             // Calculate yesterday's spent
             const yesterdayExpenses = this.financeData.expenses.filter(e => new Date(e.date).toDateString() === yesterdayStr);
             const yesterdaySpent = yesterdayExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -6152,7 +6173,7 @@ pause
             const isClaimed = this.financeData.lastClaimedBonusDate === yesterdayStr;
             const wasUnderLimit = yesterdaySpent <= dailyLimit;
 
-            if (dailyLimit > 0 && wasUnderLimit && !isClaimed) {
+            if (dailyLimit > 0 && wasUnderLimit && !isClaimed && isYesterdayValid) {
                 xpRewardCard.style.display = 'block';
                 if (xpRewardStatusText) {
                     xpRewardStatusText.textContent = `✨ Staying under limit yesterday! (Spent: ${currency} ${yesterdaySpent.toFixed(2)} / ${currency} ${dailyLimit.toFixed(2)})`;
