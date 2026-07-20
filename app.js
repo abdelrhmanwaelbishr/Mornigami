@@ -109,6 +109,7 @@ class ProductivityHub {
         // Load Finance Data
         this.financeData = this.loadData('financeData') || {
             monthYear: '',
+            startingDate: '',
             monthlyIncome: 0,
             dailyBudget: 0,
             expenses: [],
@@ -119,6 +120,7 @@ class ProductivityHub {
             savingsGoals: [],
             activeGoal: null
         };
+        this.financeData.startingDate = this.financeData.startingDate || '';
         if (!this.financeData.categories || this.financeData.categories.length === 0) {
             this.financeData.categories = ['Coffee ☕', 'Diet & Groceries 🍏', 'Gaming 🎮', 'PC Accessories 💻', 'Transportation 🚗'];
         }
@@ -3266,6 +3268,7 @@ pause
                         // Safe financeData extraction and normalization
                         this.financeData = {
                             monthYear: (data.financeData && data.financeData.monthYear) || '',
+                            startingDate: (data.financeData && data.financeData.startingDate) || '',
                             monthlyIncome: (data.financeData && data.financeData.monthlyIncome) || 0,
                             dailyBudget: (data.financeData && data.financeData.dailyBudget) || 0,
                             expenses: (data.financeData && data.financeData.expenses) || [],
@@ -3322,6 +3325,7 @@ pause
                         // User document doesn't exist yet (first time registration/login)
                         this.financeData = {
                             monthYear: '',
+                            startingDate: '',
                             monthlyIncome: 0,
                             dailyBudget: 0,
                             expenses: [],
@@ -3849,6 +3853,7 @@ pause
         // Reset Finance Data
         this.financeData = {
             monthYear: '',
+            startingDate: '',
             monthlyIncome: 0,
             dailyBudget: 0,
             expenses: [],
@@ -5691,6 +5696,7 @@ pause
         if (this.financeData.monthYear !== currentMonthYear) {
             this.financeData = {
                 monthYear: currentMonthYear,
+                startingDate: '',
                 monthlyIncome: 0,
                 dailyBudget: 0,
                 expenses: [],
