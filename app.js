@@ -6041,7 +6041,7 @@ pause
 
     renderFinanceDashboard() {
         const monthlyBudgetVal = document.getElementById('financeMonthlyBudgetVal');
-        const dailyLimitVal = document.getElementById('financeDailyLimitVal');
+        const remainingCardVal = document.getElementById('financeRemainingCardVal');
         const todaySpentVal = document.getElementById('financeTodaySpentVal');
         const totalSpentText = document.getElementById('financeTotalSpentText');
         const remainingText = document.getElementById('financeRemainingText');
@@ -6099,7 +6099,9 @@ pause
 
         // Render standard values
         monthlyBudgetVal.textContent = `${currency} ${income.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        dailyLimitVal.textContent = `${currency} ${dailyLimit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        if (remainingCardVal) {
+            remainingCardVal.textContent = `${currency} ${remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
         todaySpentVal.textContent = `${currency} ${todaySpent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         totalSpentText.textContent = `${currency} ${totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         remainingText.textContent = `${currency} ${remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
