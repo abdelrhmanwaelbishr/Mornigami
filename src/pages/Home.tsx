@@ -4,7 +4,7 @@ import { useBounties } from '@/context/BountiesContext';
 import { Button } from '@/components/ui/Button';
 import { Progress } from '@/components/ui/Progress';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { ArrowRight, Flame, Clock, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Flame, Clock, CheckCircle2, CalendarDays, ListTodo, Timer, Wallet, Play, ShoppingBag, Sun } from 'lucide-react';
 
 export const Home: React.FC = () => {
   const { bounties, bountyStats, countdown, claimBounty } = useBounties();
@@ -14,48 +14,48 @@ export const Home: React.FC = () => {
       to: '/habits',
       title: 'Habit Tracker',
       desc: 'Crease your routines, track consistency, and fold daily micro-habits into structure.',
-      icon: '📅',
+      icon: CalendarDays,
       badge: 'Build Habits',
     },
     {
       to: '/todo',
       title: 'To-Do List',
       desc: 'Break your morning down into task creases. Track and prioritize essential checklists.',
-      icon: '📋',
+      icon: ListTodo,
       badge: 'Execute Tasks',
     },
     {
       to: '/pomodoro',
       title: 'Pomogami',
       desc: 'Shape your focus blocks, creasing distractions away. Run focus sessions with ambient sounds.',
-      icon: '🍅',
+      icon: Timer,
       badge: 'Focus Blocks',
     },
     {
       to: '/finance',
       title: 'Finance Hub',
       desc: 'Track income, set a daily budget, manage your savings vault, and maintain disciplined spending.',
-      icon: '💰',
+      icon: Wallet,
       badge: 'Manage Budget',
     },
     {
       to: '/playlist',
       title: 'Playlist Tracker',
       desc: 'Import course playlists, watch lessons, track video duration milestones, and level up.',
-      icon: '▶',
+      icon: Play,
       badge: 'Watch & Learn',
     },
     {
       to: '/store',
       title: 'Rewards Store',
       desc: 'Exchange your hard-earned XP for beautiful pastel themes, origami avatars, and animated borders.',
-      icon: '🛍️',
+      icon: ShoppingBag,
       badge: 'Unlock Rewards',
     },
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in-50 duration-300">
+    <div className="space-y-7">
       {/* App Header */}
       <div>
         <h1 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-primary">
@@ -77,8 +77,8 @@ export const Home: React.FC = () => {
             Unfold your potential crease by crease.
           </p>
         </div>
-        <div className="text-5xl sm:text-6xl shrink-0 ml-4 animate-pulse select-none">
-          ☀️
+        <div className="shrink-0 ml-4 rounded-2xl border border-warning/30 bg-warning/10 p-4 text-warning">
+          <Sun className="h-9 w-9 sm:h-12 sm:w-12" aria-hidden="true" />
         </div>
       </div>
 
@@ -186,8 +186,8 @@ export const Home: React.FC = () => {
               className="group block p-6 rounded-3xl border border-border bg-surface hover:border-primary/40 hover:shadow-md transition-all duration-300"
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="text-3xl p-2.5 rounded-2xl bg-background border border-border group-hover:scale-110 transition-transform">
-                  {portal.icon}
+                <span className="p-2.5 rounded-2xl bg-background border border-border text-primary transition-transform duration-200 group-hover:scale-105">
+                  <portal.icon className="h-6 w-6" aria-hidden="true" />
                 </span>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary group-hover:text-primary transition-colors">
                   {portal.badge}
@@ -210,3 +210,4 @@ export const Home: React.FC = () => {
     </div>
   );
 };
+

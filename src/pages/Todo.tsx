@@ -252,7 +252,7 @@ export const Todo: React.FC = () => {
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total Tasks */}
         <div className="bg-surface border border-border-light rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:shadow-md transition-all">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-gradient-to-br from-sky-100 to-sky-200 dark:from-sky-950/40 dark:to-sky-900/30 text-sky-500">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-secondary/10 text-secondary">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path
                 d="M9 11L12 14L22 4"
@@ -307,7 +307,7 @@ export const Todo: React.FC = () => {
 
         {/* Pending */}
         <div className="bg-surface border border-border-light rounded-2xl p-5 flex items-center gap-4 shadow-xs hover:shadow-md transition-all">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-950/40 dark:to-amber-900/30 text-amber-500">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-warning/10 text-warning">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
               <path
@@ -379,7 +379,7 @@ export const Todo: React.FC = () => {
             <select
               value={sortCriteria}
               onChange={(e) => setSortCriteria(e.target.value as any)}
-              className="h-10 px-3 text-xs font-bold rounded-xl border border-border bg-surface text-text-secondary focus:outline-hidden focus:border-text-primary cursor-pointer shadow-xs"
+              className="h-10 px-3 text-xs font-bold rounded-xl border border-border bg-surface text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer shadow-xs"
             >
               <option value="default">Sort by...</option>
               <option value="priority-high">Priority (High to Low)</option>
@@ -450,9 +450,9 @@ export const Todo: React.FC = () => {
                     className={cn(
                       'px-5 py-4 border-b border-border flex items-center justify-between',
                       isOverdue
-                        ? 'bg-rose-500/10'
+                        ? 'bg-danger/10'
                         : isToday
-                        ? 'bg-sky-500/10'
+                        ? 'bg-secondary/10'
                         : 'bg-background'
                     )}
                   >
@@ -517,9 +517,9 @@ export const Todo: React.FC = () => {
                             task.completed
                               ? 'opacity-60'
                               : isTaskOverdue
-                              ? 'bg-rose-500/5 hover:bg-rose-500/10'
+                              ? 'bg-rose-500/5 hover:bg-danger/10'
                               : isTaskToday
-                              ? 'bg-amber-500/5 hover:bg-amber-500/10'
+                              ? 'bg-warning/5 hover:bg-warning/10'
                               : 'hover:bg-background/60'
                           )}
                         >
@@ -594,7 +594,7 @@ export const Todo: React.FC = () => {
                                 e.stopPropagation();
                                 handleOpenEditModal(task);
                               }}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center text-text-tertiary hover:text-secondary hover:bg-secondary/10 transition-colors"
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-text-tertiary hover:text-secondary hover:bg-secondary/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                               title="Edit task"
                             >
                               <svg width="15" height="15" viewBox="0 0 18 18" fill="none">
@@ -628,7 +628,7 @@ export const Todo: React.FC = () => {
                                   deleteTask(task.id);
                                 }
                               }}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center text-text-tertiary hover:text-danger hover:bg-rose-500/10 transition-colors"
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-text-tertiary hover:text-danger hover:bg-danger/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                               title="Delete task"
                             >
                               <svg width="15" height="15" viewBox="0 0 18 18" fill="none">
@@ -654,13 +654,13 @@ export const Todo: React.FC = () => {
           /* Empty States Matching Legacy */
           <div>
             {currentFilter === 'completed' ? (
-              <div className="text-center py-16 px-6 bg-surface border-2 border-dashed border-border rounded-2xl">
+              <div className="text-center py-14 px-6 bg-surface border border-border rounded-2xl shadow-sm">
                 <h3 className="font-display text-xl font-bold text-text-primary">
-                  Come on, Finish your first task!
+                  No completed tasks yet
                 </h3>
               </div>
             ) : (
-              <div className="text-center py-16 px-6 bg-surface border-2 border-dashed border-border rounded-2xl">
+              <div className="text-center py-14 px-6 bg-surface border border-border rounded-2xl shadow-sm">
                 <div
                   onClick={() => handleOpenCreateModal()}
                   className="inline-block mx-auto mb-4 text-text-tertiary hover:text-primary hover:scale-110 transition-all cursor-pointer group"
@@ -688,7 +688,7 @@ export const Todo: React.FC = () => {
                   </svg>
                 </div>
                 <h3 className="font-display text-xl font-bold text-text-primary">
-                  Come on, Create your first task!
+                  A clear list is a good place to start
                 </h3>
               </div>
             )}
@@ -804,3 +804,4 @@ export const Todo: React.FC = () => {
     </div>
   );
 };
+
