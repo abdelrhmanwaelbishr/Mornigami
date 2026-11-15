@@ -111,7 +111,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
               key={tab.to}
               to={tab.to}
               className={cn(
-                'flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all duration-200 active:scale-95 select-none',
+                'flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl cursor-pointer transition-all duration-200 ease-out active:scale-95 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface group',
                 isActive
                   ? 'text-primary font-bold'
                   : 'text-text-secondary hover:text-text-primary'
@@ -119,13 +119,25 @@ export const MobileNav: React.FC<MobileNavProps> = ({
             >
               <div
                 className={cn(
-                  'w-9 h-7 flex items-center justify-center rounded-lg transition-colors',
-                  isActive ? 'bg-primary/10 text-primary' : 'text-text-secondary'
+                  'w-9 h-7 flex items-center justify-center rounded-lg transition-all duration-200 ease-out',
+                  isActive
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'text-text-secondary group-hover:text-text-primary group-hover:bg-background'
                 )}
               >
-                <Icon className="w-4 h-4" />
+                <Icon
+                  className={cn(
+                    'w-4 h-4 transition-transform duration-200',
+                    isActive ? 'stroke-[2.5]' : 'stroke-2'
+                  )}
+                />
               </div>
-              <span className="text-[10px] mt-0.5 tracking-tight leading-none">
+              <span
+                className={cn(
+                  'text-[10px] mt-0.5 tracking-tight leading-none transition-colors duration-200',
+                  isActive ? 'font-bold text-primary' : 'font-medium text-text-secondary'
+                )}
+              >
                 {tab.label}
               </span>
             </NavLink>
@@ -137,7 +149,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
           type="button"
           onClick={() => onOpenChange(true)}
           className={cn(
-            'flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all duration-200 active:scale-95 select-none',
+            'flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl cursor-pointer transition-all duration-200 ease-out active:scale-95 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface group',
             isOpen
               ? 'text-primary font-bold'
               : 'text-text-secondary hover:text-text-primary'
@@ -146,13 +158,25 @@ export const MobileNav: React.FC<MobileNavProps> = ({
         >
           <div
             className={cn(
-              'w-9 h-7 flex items-center justify-center rounded-lg transition-colors',
-              isOpen ? 'bg-primary/10 text-primary' : 'text-text-secondary'
+              'w-9 h-7 flex items-center justify-center rounded-lg transition-all duration-200 ease-out',
+              isOpen
+                ? 'bg-primary text-primary-foreground shadow-xs'
+                : 'text-text-secondary group-hover:text-text-primary group-hover:bg-background'
             )}
           >
-            <Menu className="w-4 h-4" />
+            <Menu
+              className={cn(
+                'w-4 h-4 transition-transform duration-200',
+                isOpen ? 'stroke-[2.5]' : 'stroke-2'
+              )}
+            />
           </div>
-          <span className="text-[10px] mt-0.5 tracking-tight leading-none">
+          <span
+            className={cn(
+              'text-[10px] mt-0.5 tracking-tight leading-none transition-colors duration-200',
+              isOpen ? 'font-bold text-primary' : 'font-medium text-text-secondary'
+            )}
+          >
             Menu
           </span>
         </button>
@@ -164,18 +188,18 @@ export const MobileNav: React.FC<MobileNavProps> = ({
           {/* Backdrop */}
           <div
             onClick={() => onOpenChange(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200 motion-reduce:transition-none"
             aria-hidden="true"
           />
 
           {/* Slide Drawer Panel */}
-          <aside className="relative w-80 max-w-[85vw] h-full bg-surface border-r border-border flex flex-col shadow-2xl z-10 animate-in slide-in-from-left duration-250">
+          <aside className="relative w-80 max-w-[85vw] h-full bg-surface border-r border-border flex flex-col shadow-2xl z-10 motion-safe:animate-in motion-safe:slide-in-from-left motion-safe:duration-250 motion-reduce:transition-none">
             {/* Header */}
             <div className="p-4 border-b border-border flex items-center justify-between">
               <NavLink
                 to="/"
                 onClick={() => onOpenChange(false)}
-                className="flex items-center gap-2.5"
+                className="flex items-center gap-2.5 rounded-xl cursor-pointer hover:opacity-90 transition-all duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface p-1 -m-1"
               >
                 <img
                   src={iconLogo}
@@ -196,8 +220,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                 variant="ghost"
                 size="icon"
                 onClick={() => onOpenChange(false)}
-                className="w-8 h-8 rounded-xl text-text-secondary hover:text-text-primary"
-                aria-label="Close Menu"
+                className="w-8 h-8 rounded-xl text-text-secondary hover:text-text-primary hover:bg-background cursor-pointer transition-all duration-200 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                aria-label="Close menu"
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -209,7 +233,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                 <div className="flex items-center gap-2">
                   <div
                     className={cn(
-                      'w-7 h-7 rounded-full flex items-center justify-center text-sm bg-surface border border-border',
+                      'w-7 h-7 rounded-full flex items-center justify-center text-sm bg-surface border border-border shrink-0 motion-safe:transition-all',
                       activeBorder || ''
                     )}
                   >
@@ -223,8 +247,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                   {safeProgress}%
                 </span>
               </div>
-              <Progress value={safeProgress} className="h-1.5" />
-              <div className="flex justify-between text-[10px] text-text-tertiary font-medium">
+              <Progress value={safeProgress} className="h-1.5 motion-reduce:[&>div]:transition-none" />
+              <div className="flex justify-between text-[10px] text-text-secondary font-medium">
                 <span>{safeXP} XP</span>
                 <span>{safeXPNeeded} XP Needed</span>
               </div>
@@ -241,13 +265,18 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                     to={link.to}
                     onClick={() => onOpenChange(false)}
                     className={cn(
-                      'flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-98',
+                      'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm cursor-pointer transition-all duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
                       isActive
-                        ? 'bg-primary text-primary-foreground shadow-xs'
-                        : 'text-text-secondary hover:bg-background hover:text-text-primary'
+                        ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                        : 'text-text-secondary font-medium hover:bg-background hover:text-text-primary'
                     )}
                   >
-                    <Icon className="w-4 h-4 shrink-0" />
+                    <Icon
+                      className={cn(
+                        'w-4 h-4 shrink-0 transition-transform duration-200',
+                        isActive ? 'stroke-[2.5]' : 'stroke-2'
+                      )}
+                    />
                     <span className="truncate">{link.label}</span>
                   </NavLink>
                 );
@@ -260,8 +289,10 @@ export const MobileNav: React.FC<MobileNavProps> = ({
               <div className="flex items-center justify-between px-2 py-1.5 bg-background rounded-xl border border-border text-xs font-semibold">
                 <span className="text-text-secondary">App Appearance</span>
                 <button
+                  type="button"
                   onClick={toggleTheme}
-                  className="flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg bg-surface border border-border text-text-primary active:scale-95 transition-all"
+                  className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-surface border border-border text-text-primary hover:bg-background cursor-pointer active:scale-95 transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                  aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
                 >
                   {theme === 'dark' ? (
                     <>
@@ -280,8 +311,9 @@ export const MobileNav: React.FC<MobileNavProps> = ({
               {/* User Auth Action */}
               {user ? (
                 <button
+                  type="button"
                   onClick={handleSignOut}
-                  className="flex items-center justify-center gap-2 w-full py-2 rounded-xl text-xs font-bold text-danger hover:bg-danger-bg transition-colors"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-bold text-danger hover:bg-danger-bg cursor-pointer transition-all duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Sign Out</span>
@@ -292,7 +324,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                     onOpenChange(false);
                     onOpenAuth?.();
                   }}
-                  className="w-full h-9 rounded-xl text-xs font-bold gap-1.5"
+                  className="w-full h-10 rounded-xl text-xs font-bold gap-1.5 cursor-pointer transition-all duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   <span>Sign In / Register</span>

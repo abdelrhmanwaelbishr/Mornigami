@@ -53,7 +53,7 @@ export const Sidebar: React.FC = () => {
         {/* Brand Header */}
         <NavLink
           to="/"
-          className="flex items-center gap-3 p-5 border-b border-border/60 hover:opacity-90 transition-opacity"
+          className="flex items-center gap-3 p-5 border-b border-border/60 hover:opacity-90 cursor-pointer transition-all duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface rounded-xl"
         >
           <img
             src={iconLogo}
@@ -82,16 +82,25 @@ export const Sidebar: React.FC = () => {
                 to={item.to}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all group',
+                    'flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm cursor-pointer transition-all duration-200 ease-out active:scale-[0.98] group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface select-none',
                     isActive
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-text-secondary hover:bg-background hover:text-text-primary'
+                      ? 'bg-primary text-primary-foreground font-bold shadow-sm'
+                      : 'text-text-secondary font-medium hover:bg-background hover:text-text-primary'
                   )
                 }
                 title={minimized ? item.label : undefined}
               >
-                <Icon className="w-5 h-5 shrink-0 transition-transform group-hover:scale-110" />
-                {!minimized && <span>{item.label}</span>}
+                {({ isActive }) => (
+                  <>
+                    <Icon
+                      className={cn(
+                        'w-5 h-5 shrink-0 transition-transform duration-200 ease-out group-hover:scale-105',
+                        isActive ? 'stroke-[2.5]' : 'stroke-2'
+                      )}
+                    />
+                    {!minimized && <span className="truncate">{item.label}</span>}
+                  </>
+                )}
               </NavLink>
             );
           })}
@@ -103,8 +112,9 @@ export const Sidebar: React.FC = () => {
         <button
           type="button"
           onClick={() => setMinimized((prev) => !prev)}
-          className="flex items-center justify-center w-full h-9 rounded-lg border border-border text-text-secondary hover:bg-background hover:text-text-primary transition-all text-xs font-semibold gap-2"
+          className="flex items-center justify-center w-full h-9 rounded-lg border border-border text-text-secondary hover:bg-background hover:text-text-primary cursor-pointer transition-all duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface text-xs font-semibold gap-2"
           title={minimized ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          aria-label={minimized ? 'Expand sidebar menu' : 'Collapse sidebar menu'}
         >
           {minimized ? (
             <ChevronRight className="w-4 h-4" />

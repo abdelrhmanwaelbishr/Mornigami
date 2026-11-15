@@ -10,11 +10,11 @@ export const StandaloneLayout: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <header className="h-14 px-6 border-b border-border bg-surface flex items-center justify-between">
+    <div className="min-h-screen flex flex-col bg-background text-text-primary">
+      <header className="h-16 px-4 sm:px-6 border-b border-border bg-surface flex items-center justify-between">
         <Link
           to="/"
-          className="flex items-center gap-2 text-xs font-bold text-text-secondary hover:text-text-primary transition-colors"
+          className="flex items-center gap-2 text-xs font-bold text-text-secondary hover:text-text-primary cursor-pointer transition-all duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface rounded-xl px-2.5 py-1.5 -ml-2.5"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Hub</span>
@@ -25,8 +25,9 @@ export const StandaloneLayout: React.FC = () => {
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="w-8 h-8 rounded-lg"
-            title="Toggle theme"
+            className="w-10 h-10 rounded-xl cursor-pointer hover:bg-background transition-all duration-200 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
           >
             {theme === 'dark' ? (
               <Sun className="w-4 h-4 text-warning" />

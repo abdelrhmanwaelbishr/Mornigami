@@ -73,6 +73,11 @@
     border-color: var(--color-border);
   }
 
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
   html,
   body,
   #root {
@@ -113,13 +118,11 @@
 .spark-border {
   border-color: #F59E0B !important;
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.6) !important;
-  animation: pulseBorder 1.5s infinite alternate;
 }
 
 .fire-border {
   border-color: #EF4444 !important;
   box-shadow: 0 0 12px rgba(239, 68, 68, 0.6) !important;
-  animation: flameBorder 1s infinite alternate;
 }
 
 .rainbow-border {
@@ -128,7 +131,28 @@
   background-origin: border-box;
   background-clip: padding-box, border-box;
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.5) !important;
-  animation: rainbowBorder 3s linear infinite;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .spark-border {
+    animation: pulseBorder 1.5s infinite alternate;
+  }
+
+  .fire-border {
+    animation: flameBorder 1s infinite alternate;
+  }
+
+  .rainbow-border {
+    animation: rainbowBorder 3s linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spark-border,
+  .fire-border,
+  .rainbow-border {
+    animation: none !important;
+  }
 }
 
 /* Mobile Safe Area & Touch Manipulation */
