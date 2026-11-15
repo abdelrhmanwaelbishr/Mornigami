@@ -10,7 +10,7 @@ import {
   DialogDescription,
 } from '@/components/ui/Dialog';
 import { Input } from '@/components/ui/Input';
-import { Plus, Check, Flame, Trash2, Edit2, Calendar } from 'lucide-react';
+import { Plus, Check, Flame, Trash2, Edit2, Calendar, Sprout } from 'lucide-react';
 import type { Habit } from '@/types';
 import { useConfirm } from '@/context/ConfirmContext';
 import { cn } from '@/lib/utils';
@@ -100,7 +100,7 @@ export const Habits: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in-50 duration-300">
+    <div className="space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -125,7 +125,7 @@ export const Habits: React.FC = () => {
             key={cat}
             onClick={() => setSelectedCategory(cat)}
             className={cn(
-              'px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0',
+              'px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
               selectedCategory === cat
                 ? 'bg-primary text-primary-foreground shadow-xs'
                 : 'bg-surface border border-border text-text-secondary hover:bg-background hover:text-text-primary'
@@ -252,7 +252,7 @@ export const Habits: React.FC = () => {
         </div>
       ) : (
         <Card className="p-12 text-center border-dashed">
-          <div className="text-4xl mb-3">🌱</div>
+          <div className="mb-3 flex justify-center text-success"><Sprout className="h-9 w-9" aria-hidden="true" /></div>
           <h3 className="font-display text-lg font-bold text-text-primary">
             No habits in this category yet
           </h3>
@@ -293,7 +293,7 @@ export const Habits: React.FC = () => {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm text-text-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 {categories.filter((c) => c !== 'All').map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -313,7 +313,7 @@ export const Habits: React.FC = () => {
                       key={idx}
                       onClick={() => toggleDay(idx)}
                       className={cn(
-                        'h-9 rounded-lg text-xs font-bold border transition-all',
+                        'h-9 rounded-lg text-xs font-bold border transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95',
                         selected
                           ? 'bg-primary text-primary-foreground border-primary'
                           : 'bg-background text-text-tertiary border-border hover:bg-surface'
@@ -343,7 +343,7 @@ export const Habits: React.FC = () => {
                 <select
                   value={durationUnit}
                   onChange={(e) => setDurationUnit(e.target.value as any)}
-                  className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm text-text-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
                   <option value="mins">Minutes</option>
                   <option value="hours">Hours</option>
@@ -362,3 +362,4 @@ export const Habits: React.FC = () => {
     </div>
   );
 };
+
