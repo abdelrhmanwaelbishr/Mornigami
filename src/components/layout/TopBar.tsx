@@ -45,26 +45,27 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
   const safeProgress = Math.max(0, Math.min(100, progressPercent || 0));
 
   return (
-    <header className="h-14 sm:h-16 px-3 sm:px-6 border-b border-border bg-surface flex items-center justify-between md:justify-end sticky top-0 z-20 shadow-xs w-full max-w-full overflow-hidden">
+    <header className="h-16 px-3 sm:px-6 border-b border-border bg-surface flex items-center justify-between md:justify-end sticky top-0 z-20 shadow-xs w-full max-w-full overflow-hidden">
       {/* Mobile Menu Trigger & Brand Logo */}
       <div className="flex items-center gap-1.5 md:hidden min-w-0">
         <Button
           variant="ghost"
           size="icon"
           onClick={onOpenMobileMenu}
-          className="w-8 h-8 rounded-xl text-text-secondary hover:text-text-primary active:scale-95 shrink-0"
+          className="w-10 h-10 rounded-xl text-text-secondary hover:text-text-primary hover:bg-background cursor-pointer transition-all duration-200 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface shrink-0"
           aria-label="Open navigation menu"
         >
-          <Menu className="w-4 h-4" />
+          <Menu className="w-5 h-5" />
         </Button>
         <button
+          type="button"
           onClick={() => navigate('/')}
-          className="flex items-center gap-2 hover:opacity-90 transition-opacity truncate min-w-0"
+          className="flex items-center gap-2 hover:opacity-90 cursor-pointer transition-all duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface rounded-xl p-1 -m-1 truncate min-w-0"
         >
           <img
             src={iconLogo}
             alt="Mornigami"
-            className="w-6 h-6 object-contain rounded-lg shrink-0"
+            className="w-7 h-7 object-contain rounded-lg shrink-0"
           />
           <span className="font-display font-black text-base sm:text-lg text-primary tracking-tight truncate">
             Mornigami
@@ -80,8 +81,9 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
               <Button
                 variant="outline"
                 size="icon"
-                className="rounded-xl w-9 h-9 shrink-0"
+                className="rounded-xl w-10 h-10 shrink-0 cursor-pointer transition-all duration-200 ease-out hover:bg-background hover:text-text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                 title="Change Accent Color"
+                aria-label="Change accent color"
               >
                 <Palette className="w-4 h-4 text-text-secondary" />
               </Button>
@@ -89,7 +91,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel>Accent Colors</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setAccentColor('')} className="flex items-center gap-2">
+              <DropdownMenuItem onClick={() => setAccentColor('')} className="flex items-center gap-2 cursor-pointer transition-colors duration-150 ease-out">
                 <span className="w-4 h-4 rounded-full border border-border bg-slate-900 dark:bg-white" />
                 <span>Theme Default</span>
               </DropdownMenuItem>
@@ -98,7 +100,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
                   <DropdownMenuItem
                     key={color.id}
                     onClick={() => setAccentColor(color.value)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 cursor-pointer transition-colors duration-150 ease-out"
                   >
                     <span
                       className="w-4 h-4 rounded-full border border-border"
@@ -111,9 +113,10 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
               ) : (
                 <DropdownMenuItem
                   onClick={() => navigate('/store')}
-                  className="text-xs text-text-tertiary"
+                  className="text-xs text-text-secondary cursor-pointer flex items-center gap-2 transition-colors duration-150 ease-out"
                 >
-                  Unlock more in Store 🛍️
+                  <ShoppingBag className="w-3.5 h-3.5 text-text-secondary shrink-0" />
+                  <span>Unlock more in Store</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -125,13 +128,14 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
           variant="outline"
           size="icon"
           onClick={toggleTheme}
-          className="rounded-xl w-8 h-8 sm:w-9 sm:h-9 shrink-0"
+          className="rounded-xl w-10 h-10 shrink-0 cursor-pointer transition-all duration-200 ease-out hover:bg-background active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
         >
           {theme === 'dark' ? (
-            <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-warning" />
+            <Sun className="w-4 h-4 text-warning" />
           ) : (
-            <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-text-secondary" />
+            <Moon className="w-4 h-4 text-text-secondary" />
           )}
         </Button>
 
@@ -146,7 +150,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
           {/* Avatar with Animated Border */}
           <div
             className={cn(
-              'w-7 h-7 rounded-full flex items-center justify-center text-base bg-surface border-2 border-border shrink-0 transition-all',
+              'w-7 h-7 rounded-full flex items-center justify-center text-base bg-surface border-2 border-border shrink-0 motion-safe:transition-all',
               activeBorder || ''
             )}
             title={`Level ${safeLevel} Achiever`}
@@ -162,15 +166,24 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
                 {safeXP} / {safeXPNeeded} XP
               </span>
             </div>
-            <Progress value={safeProgress} className="h-1.5" />
+            <Progress value={safeProgress} className="h-1.5 motion-reduce:[&>div]:transition-none" />
           </div>
         </div>
 
         {/* Mobile Compact Pill (sm:hidden) */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => navigate('/store')}
-          className="flex sm:hidden items-center gap-1 bg-background px-2 py-1 rounded-xl border border-border shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              navigate('/store');
+            }
+          }}
+          className="flex sm:hidden items-center gap-1.5 bg-background h-10 px-2.5 rounded-xl border border-border shadow-xs shrink-0 cursor-pointer hover:bg-surface active:scale-95 transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface select-none"
           title={`Level ${safeLevel} • ${safeXP} / ${safeXPNeeded} XP (${safeProgress}%) - Tap to visit Store`}
+          aria-label={`Level ${safeLevel}, ${safeXP} of ${safeXPNeeded} XP. Tap to visit Rewards Store.`}
         >
           <span className="bg-primary text-primary-foreground text-[10px] font-black px-1.5 py-0.5 rounded-md leading-none">
             L{safeLevel}
@@ -183,17 +196,19 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="flex items-center gap-2 p-1 sm:pl-2 sm:pr-3 rounded-xl border border-border bg-background hover:bg-surface transition-all shrink-0"
+                type="button"
+                className="flex items-center gap-2 h-10 px-1.5 sm:pl-2 sm:pr-3 rounded-xl border border-border bg-background hover:bg-surface cursor-pointer transition-all duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface shrink-0"
                 title="Account Menu"
+                aria-label="Account Menu"
               >
                 {userAvatarUrl ? (
                   <img
                     src={userAvatarUrl}
                     alt={user.displayName || 'User'}
-                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg object-cover shrink-0 border border-border"
+                    className="w-7 h-7 rounded-lg object-cover shrink-0 border border-border"
                   />
                 ) : (
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-primary text-primary-foreground font-bold flex items-center justify-center text-xs shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-primary text-primary-foreground font-bold flex items-center justify-center text-xs shrink-0">
                     {user.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
                   </div>
                 )}
@@ -202,7 +217,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
                     {user.displayName || user.email?.split('@')[0]}
                   </span>
                   {userNumber && (
-                    <span className="text-[10px] font-semibold text-text-tertiary">
+                    <span className="text-[10px] font-semibold text-text-secondary">
                       #{userNumber}
                     </span>
                   )}
@@ -237,16 +252,16 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/settings')}>
+              <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer transition-colors duration-150 ease-out">
                 <UserIcon className="w-4 h-4 mr-2" />
                 <span>Edit Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/store')}>
+              <DropdownMenuItem onClick={() => navigate('/store')} className="cursor-pointer transition-colors duration-150 ease-out">
                 <ShoppingBag className="w-4 h-4 mr-2" />
                 <span>Rewards Store</span>
               </DropdownMenuItem>
               {userRole === 'admin' && (
-                <DropdownMenuItem onClick={() => navigate('/admin')}>
+                <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer transition-colors duration-150 ease-out">
                   <Shield className="w-4 h-4 mr-2" />
                   <span>Admin Panel</span>
                 </DropdownMenuItem>
@@ -254,7 +269,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleSignOut}
-                className="text-danger focus:text-danger focus:bg-danger-bg"
+                className="text-danger focus:text-danger focus:bg-danger-bg cursor-pointer transition-colors duration-150 ease-out"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 <span>Sign Out</span>
@@ -264,7 +279,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
         ) : (
           <Button
             onClick={onOpenAuth || (() => navigate('/login'))}
-            className="rounded-xl h-9 px-3.5 text-xs font-bold gap-1.5"
+            className="rounded-xl h-10 px-4 text-xs font-bold gap-1.5 cursor-pointer transition-all duration-200 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface shrink-0"
           >
             <LogIn className="w-4 h-4" />
             <span>Sign In</span>

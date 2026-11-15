@@ -14,7 +14,7 @@ export const MainLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex bg-background text-foreground selection:bg-primary selection:text-primary-foreground w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen flex bg-background text-text-primary selection:bg-primary selection:text-primary-foreground w-full max-w-full overflow-x-hidden">
       {/* Navigation Sidebar (Desktop) */}
       <Sidebar />
 
