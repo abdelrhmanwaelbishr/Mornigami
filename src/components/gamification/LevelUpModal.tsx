@@ -9,15 +9,18 @@ import {
 } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { useGamification } from '@/context/GamificationContext';
+import { Trophy, Rocket } from 'lucide-react';
 
 export const LevelUpModal: React.FC = () => {
   const { levelUpModalOpen, closeLevelUpModal, newLevelAchieved } = useGamification();
 
   return (
     <Dialog open={levelUpModalOpen} onOpenChange={closeLevelUpModal}>
-      <DialogContent className="max-w-sm text-center p-6">
+      <DialogContent className="max-w-sm text-center p-6 motion-safe:animate-modal-pop">
         <DialogHeader className="text-center sm:text-center">
-          <div className="mx-auto text-5xl mb-2 animate-bounce">🏆</div>
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-warning/15 ring-1 ring-warning/40 shadow-sm">
+            <Trophy className="h-8 w-8 text-warning" aria-hidden="true" />
+          </div>
           <DialogTitle className="text-3xl font-display font-black text-primary">
             Level Up!
           </DialogTitle>
@@ -30,13 +33,18 @@ export const LevelUpModal: React.FC = () => {
           </DialogDescription>
         </DialogHeader>
 
-        <p className="text-xs text-text-secondary leading-relaxed my-2">
-          Your discipline and focus have elevated your discipline rank. Keep folding habits and conquering daily bounties!
+        <p className="text-sm text-text-secondary leading-relaxed my-2">
+          Your discipline and focus have elevated your discipline rank. Keep folding habits and
+          conquering daily bounties!
         </p>
 
         <DialogFooter className="sm:justify-center">
-          <Button onClick={closeLevelUpModal} className="w-full font-bold h-11">
-            Keep Going! 🚀
+          <Button
+            onClick={closeLevelUpModal}
+            className="w-full font-bold h-11 gap-2 cursor-pointer transition-transform active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            Keep Going!
+            <Rocket className="h-4 w-4" aria-hidden="true" />
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -6,8 +6,14 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { KeyRound, Palette, LogOut, Camera, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useConfirm } from '@/context/ConfirmContext';
+
+const FOCUS_RING =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+const DANGER_FOCUS_RING =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
 export const Settings: React.FC = () => {
   const { user, userDoc, userRole, userNumber, updateUserProfile, resetPassword, signOut } = useAuth();
@@ -137,71 +143,86 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in-50 duration-300">
+    <div className="mx-auto max-w-2xl space-y-6 animate-in fade-in-50 duration-300">
       <div>
-        <h1 className="font-display text-3xl font-black text-primary">
-          Account Settings
-        </h1>
-        <p className="text-sm font-medium text-text-secondary mt-1">
+        <h1 className="font-display text-3xl font-black text-primary">Account Settings</h1>
+        <p className="mt-1 text-sm font-medium text-text-secondary">
           Manage your Mornigami identity, password security, and theme preferences.
         </p>
       </div>
 
       {/* Account Info Card */}
-      <Card className="p-6 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-          {/* Avatar Display */}
-          <div className="relative group shrink-0">
-            {profilePic ? (
-              <img
-                src={profilePic}
-                alt="Profile Avatar"
-                className="w-20 h-20 rounded-2xl object-cover shadow-sm border-2 border-border"
-              />
-            ) : (
-              <div className="w-20 h-20 rounded-2xl bg-primary text-primary-foreground font-black text-3xl flex items-center justify-center shadow-sm">
-                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
-              </div>
-            )}
+      <Card className="space-y-5 rounded-2xl p-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+          {/* Avatar Upload Area */}
+          <div className="shrink-0">
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              onChange={handlePictureUpload}
+              className="hidden"
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPic}
+              aria-label={profilePic ? 'Change profile picture' : 'Upload profile picture'}
+              className={cn(
+                'group relative block cursor-pointer overflow-hidden rounded-2xl border-2 border-border shadow-sm transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60',
+                FOCUS_RING
+              )}
+            >
+              {profilePic ? (
+                <img src={profilePic} alt="" className="h-20 w-20 object-cover" />
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center bg-primary text-3xl font-black text-primary-foreground">
+                  {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
+                </div>
+              )}
+              <span className="absolute inset-0 flex items-center justify-center bg-primary/45 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+                <Camera className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
+              </span>
+            </button>
+            <span className="mt-1.5 block text-center text-xs text-text-secondary">
+              {uploadingPic ? 'Uploading…' : 'Change photo'}
+            </span>
           </div>
 
           {/* User Details and Picture Upload Controls */}
-          <div className="space-y-2 flex-1">
-            <h3 className="font-display text-xl font-bold text-text-primary">
+          <div className="flex-1 space-y-2">
+            <h2 className="font-display text-xl font-bold text-text-primary">
               {user?.displayName || 'Anonymous Folder'}
-            </h3>
+            </h2>
             <p className="text-xs text-text-secondary">{user?.email}</p>
 
-            <div className="flex items-center gap-2 pt-1">
+            <div className="flex flex-wrap items-center gap-2 pt-1">
               {userNumber && (
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+                <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
                   User ID: #{userNumber}
                 </span>
               )}
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-background border border-border text-text-secondary">
+              <span className="rounded-md border border-border bg-background px-2 py-0.5 text-xs font-bold text-text-secondary">
                 Role: {userRole}
               </span>
             </div>
 
             {/* Picture Upload Buttons */}
-            <div className="flex items-center gap-2 pt-2">
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={handlePictureUpload}
-                className="hidden"
-              />
-
+            <div className="flex flex-wrap items-center gap-2 pt-2">
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
                 disabled={uploadingPic}
                 onClick={() => fileInputRef.current?.click()}
-                className="h-8 px-3 text-xs font-bold gap-1.5"
+                className={cn(
+                  'h-9 cursor-pointer gap-1.5 px-3 text-xs font-bold transition-all active:scale-[0.98]',
+                  FOCUS_RING
+                )}
               >
-                <Camera className="w-3.5 h-3.5" />
+                <Camera className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>{uploadingPic ? 'Uploading...' : 'Upload Picture'}</span>
               </Button>
 
@@ -212,9 +233,12 @@ export const Settings: React.FC = () => {
                   variant="ghost"
                   disabled={uploadingPic}
                   onClick={handleRemovePicture}
-                  className="h-8 px-2.5 text-xs font-bold text-danger hover:bg-danger/10 gap-1.5"
+                  className={cn(
+                    'h-9 cursor-pointer gap-1.5 px-2.5 text-xs font-bold text-danger transition-all hover:bg-danger/10 active:scale-[0.98]',
+                    DANGER_FOCUS_RING
+                  )}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Remove</span>
                 </Button>
               )}
@@ -222,54 +246,100 @@ export const Settings: React.FC = () => {
           </div>
         </div>
 
-        <form onSubmit={handleUpdateProfile} className="space-y-3 pt-3 border-t border-border/60">
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-text-secondary">Display Name</label>
+        <form onSubmit={handleUpdateProfile} className="space-y-3 border-t border-border/60 pt-3">
+          <div className="space-y-1.5">
+            <label
+              htmlFor="display-name"
+              className="block text-sm font-semibold text-text-primary"
+            >
+              Display Name
+            </label>
             <Input
+              id="display-name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Your username"
+              autoComplete="name"
+              className="focus-visible:ring-offset-background"
             />
           </div>
-          <Button type="submit" disabled={saving} size="sm" className="font-bold text-xs h-9">
+          <Button
+            type="submit"
+            disabled={saving}
+            size="sm"
+            className={cn(
+              'h-10 cursor-pointer text-xs font-bold transition-all active:scale-[0.98]',
+              FOCUS_RING
+            )}
+          >
             {saving ? 'Saving...' : 'Update Display Name'}
           </Button>
         </form>
       </Card>
 
       {/* Security & Password */}
-      <Card className="p-6 space-y-4">
+      <Card className="space-y-4 rounded-2xl p-6">
         <div className="flex items-center gap-2 text-text-primary">
-          <KeyRound className="w-5 h-5 text-primary" />
-          <h3 className="font-display text-base font-bold">Password & Security</h3>
+          <KeyRound className="h-5 w-5 text-primary" aria-hidden="true" />
+          <h2 className="font-display text-base font-bold">Password &amp; Security</h2>
         </div>
         <p className="text-xs text-text-secondary">
           Dispatch an automated password reset email link to update your secure login credentials.
         </p>
-        <Button variant="outline" size="sm" onClick={handleResetPass} className="text-xs font-bold h-9">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleResetPass}
+          className={cn(
+            'h-10 cursor-pointer text-xs font-bold transition-all active:scale-[0.98]',
+            FOCUS_RING
+          )}
+        >
           Send Password Reset Email
         </Button>
       </Card>
 
       {/* Preferences */}
-      <Card className="p-6 space-y-4">
+      <Card className="space-y-4 rounded-2xl p-6">
         <div className="flex items-center gap-2 text-text-primary">
-          <Palette className="w-5 h-5 text-secondary" />
-          <h3 className="font-display text-base font-bold">Theme Appearance</h3>
+          <Palette className="h-5 w-5 text-secondary" aria-hidden="true" />
+          <h2 className="font-display text-base font-bold">Theme Appearance</h2>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-text-secondary font-bold">
-            Current Mode: <span className="capitalize text-text-primary">{theme}</span>
-          </span>
-          <Button variant="outline" size="sm" onClick={toggleTheme} className="text-xs font-bold h-9">
-            Switch to {theme === 'dark' ? 'Light' : 'Dark'}
-          </Button>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <label htmlFor="theme-switch" className="block text-sm font-semibold text-text-primary">
+              Dark mode
+            </label>
+            <p className="text-xs text-text-secondary">
+              Currently using the <span className="capitalize">{theme}</span> theme.
+            </p>
+          </div>
+          <button
+            id="theme-switch"
+            type="button"
+            role="switch"
+            aria-checked={theme === 'dark'}
+            onClick={toggleTheme}
+            className={cn(
+              'relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-200 active:scale-[0.98]',
+              FOCUS_RING,
+              theme === 'dark' ? 'border-primary bg-primary' : 'border-border bg-background'
+            )}
+          >
+            <span
+              className={cn(
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-surface shadow-sm ring-1 ring-border transition-transform duration-200 motion-reduce:transition-none',
+                theme === 'dark' ? 'translate-x-6' : 'translate-x-0.5'
+              )}
+              aria-hidden="true"
+            />
+          </button>
         </div>
       </Card>
 
       {/* Danger Zone / Logout */}
-      <Card className="p-6 border-danger/30 space-y-3 bg-danger/5">
-        <h3 className="font-display text-base font-bold text-danger">Session Control</h3>
+      <Card className="space-y-3 rounded-2xl border-danger/30 bg-danger/5 p-6">
+        <h2 className="font-display text-base font-bold text-danger">Session Control</h2>
         <p className="text-xs text-text-secondary">
           Sign out of your Mornigami session. Your data remains safely persisted in Cloud Firestore.
         </p>
@@ -277,9 +347,12 @@ export const Settings: React.FC = () => {
           variant="destructive"
           size="sm"
           onClick={handleSignOut}
-          className="text-xs font-bold h-9 gap-1.5"
+          className={cn(
+            'h-10 cursor-pointer gap-1.5 text-xs font-bold shadow-sm transition-all hover:bg-danger/90 hover:shadow-md active:scale-[0.98]',
+            DANGER_FOCUS_RING
+          )}
         >
-          <LogOut className="w-3.5 h-3.5" />
+          <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Sign Out of Hub</span>
         </Button>
       </Card>
