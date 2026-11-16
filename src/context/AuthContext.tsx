@@ -45,6 +45,41 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * Local username → email directory.
+ *
+ * Username sign-in historically resolved the email through the Firestore users
+ * collection. That read can be denied by security rules, which made username
+ * sign-in fail on a fresh browser. Remembering accounts created (or first seen)
+ * on this device keeps username sign-in working without the directory.
+ */
+const USERNAME_DIRECTORY_KEY = 'usernameDirectory';
+
+type UsernameDirectory = Record<string, string>;
+
+const readUsernameDirectory = (): UsernameDirectory => {
+  try {
+    const raw = localStorage.getItem(USERNAME_DIRECTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? (parsed as UsernameDirectory) : {};
+  } catch {
+    return {};
+  }
+};
+
+const rememberUsername = (username: string, email: string): void => {
+  const key = username.trim().toLowerCase();
+  if (!key || !email) return;
+  const directory = readUsernameDirectory();
+  if (directory[key] === email) return;
+  directory[key] = email;
+  try {
+    localStorage.setItem(USERNAME_DIRECTORY_KEY, JSON.stringify(directory));
+  } catch {
+    // Private-mode or full storage: username sign-in simply falls back to email.
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
@@ -102,6 +137,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(null);
           setUserDoc(null);
           return;
+        }
+
+        if (data.displayName && data.email) {
+          rememberUsername(data.displayName.toString(), data.email.toString());
         }
 
         // Determine Role (original logic: if username/displayName is 'Bishr', grant admin)
@@ -198,35 +237,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const trimmed = emailOrUsername.trim();
     let targetEmail = trimmed;
 
-    // If input does not contain '@', look up email by displayName/username in Firestore
+    // If input does not contain '@', resolve the username to its email.
     if (!trimmed.includes('@')) {
-      if (!db) {
-        throw new Error('Database is unavailable. Please log in using your email address.');
-      }
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('displayName', '==', trimmed));
-      const snap = await getDocs(q);
-
-      if (!snap.empty) {
-        const found = snap.docs[0].data()?.email;
-        if (found) {
-          targetEmail = found;
-        }
+      // Accounts created on this browser are remembered locally, so username
+      // sign-in keeps working even when the users directory is not readable.
+      const localMatch = readUsernameDirectory()[trimmed.toLowerCase()];
+      if (localMatch) {
+        targetEmail = localMatch;
       } else {
-        // Fallback: search case-insensitively across registered users
-        const allUsersSnap = await getDocs(usersRef);
-        const matched = allUsersSnap.docs.find((d) => {
-          const data = d.data();
-          const dName = data?.displayName?.toString().toLowerCase();
-          const uName = data?.username?.toString().toLowerCase();
-          const search = trimmed.toLowerCase();
-          return dName === search || uName === search;
-        });
+        if (!db) {
+          throw new Error('Database is unavailable. Please log in using your email address.');
+        }
 
-        if (matched && matched.data()?.email) {
-          targetEmail = matched.data().email;
-        } else {
-          throw new Error('No account found with this username. Please verify your username or use your email.');
+        try {
+          const usersRef = collection(db, 'users');
+          const q = query(usersRef, where('displayName', '==', trimmed));
+          const snap = await getDocs(q);
+          let resolved = snap.empty ? undefined : snap.docs[0].data()?.email;
+
+          if (!resolved) {
+            // Fallback: search case-insensitively across registered users
+            const allUsersSnap = await getDocs(usersRef);
+            const matched = allUsersSnap.docs.find((d) => {
+              const data = d.data();
+              const dName = data?.displayName?.toString().toLowerCase();
+              const uName = data?.username?.toString().toLowerCase();
+              const search = trimmed.toLowerCase();
+              return dName === search || uName === search;
+            });
+            resolved = matched?.data()?.email;
+          }
+
+          if (!resolved) {
+            throw new Error('No account found with this username. Please verify your username or use your email.');
+          }
+
+          targetEmail = resolved;
+          rememberUsername(trimmed, resolved);
+        } catch (lookupError) {
+          if (lookupError instanceof Error && lookupError.message.startsWith('No account found')) {
+            throw lookupError;
+          }
+          // Security rules can deny the directory read; say so instead of
+          // leaking "Missing or insufficient permissions" to the user.
+          throw new Error('This build cannot look up usernames. Please sign in with your email address.');
         }
       }
     }
@@ -239,14 +293,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const trimmedEmail = email.trim();
 
     if (db) {
-      const usersRef = collection(db, 'users');
-      const snap = await getDocs(usersRef);
-      const isTaken = snap.docs.some((d) => {
-        const data = d.data();
-        const dName = data?.displayName?.toString().toLowerCase();
-        const uName = data?.username?.toString().toLowerCase();
-        return dName === trimmedUsername.toLowerCase() || uName === trimmedUsername.toLowerCase();
-      });
+      // The availability check reads the whole users collection, which security
+      // rules may deny for signed-out visitors. Never let that block sign-up:
+      // Firebase Auth still rejects an email that is already registered.
+      let isTaken = false;
+      try {
+        const usersRef = collection(db, 'users');
+        const snap = await getDocs(usersRef);
+        isTaken = snap.docs.some((d) => {
+          const data = d.data();
+          const dName = data?.displayName?.toString().toLowerCase();
+          const uName = data?.username?.toString().toLowerCase();
+          return dName === trimmedUsername.toLowerCase() || uName === trimmedUsername.toLowerCase();
+        });
+      } catch (err) {
+        console.warn('Username availability check skipped (Firestore read denied):', err);
+      }
       if (isTaken) {
         throw new Error('This username is already taken. Please choose a different one.');
       }
@@ -255,6 +317,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const cred = await createUserWithEmailAndPassword(auth, trimmedEmail, pass);
     if (cred.user) {
       await fbUpdateProfile(cred.user, { displayName: trimmedUsername });
+      rememberUsername(trimmedUsername, trimmedEmail);
       await fetchUserData(cred.user);
     }
   };
@@ -284,26 +347,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserDoc(null);
     setUserRole('user');
     setUserNumber(null);
-    const keysToClear = [
-      'habits',
-      'tasks',
-      'playlists',
-      'pomodoroStats',
-      'pomodoroSettings',
-      'motivationalSettings',
-      'userLevel',
-      'userXP',
-      'spentXP',
-      'unlockedItems',
-      'activeAvatar',
-      'activeBorder',
-      'friendsList',
-      'financeData',
-      'userNumber',
-      'dailyBounties',
-      'bountyStats',
-    ];
-    keysToClear.forEach((k) => localStorage.removeItem(k));
+    // Keep the workspace after sign-out. Mornigami's demo data lives in this
+    // browser, and wiping it here is what used to make the next sign-in look
+    // empty. Only the account-scoped bits are dropped.
+    localStorage.removeItem('userNumber');
   };
 
   const resetPassword = async (email: string) => {

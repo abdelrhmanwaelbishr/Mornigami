@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { readAuthError, googleAuthErrorMessage } from '@/lib/authErrors';
+import { readAuthError, googleAuthErrorMessage, signInErrorMessage } from '@/lib/authErrors';
 import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react';
 import '@/styles/login.css';
 
@@ -179,16 +179,7 @@ export const Login: React.FC = () => {
       navigate(from, { replace: true });
     } catch (err: unknown) {
       console.error('Sign in error:', err);
-      const { code, message } = readAuthError(err);
-      let msg = 'Failed to sign in. Please verify your credentials.';
-      if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-        msg = 'Invalid username/email or password. Please check your credentials.';
-      } else if (code === 'auth/too-many-requests') {
-        msg = 'Too many failed login attempts. Please try again later or reset your password.';
-      } else if (message) {
-        msg = message;
-      }
-      announceError(msg);
+      announceError(signInErrorMessage(err));
     } finally {
       setSubmitting(false);
     }

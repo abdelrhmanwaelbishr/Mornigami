@@ -5,10 +5,11 @@ import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { KeyRound, Palette, LogOut, Camera, Trash2 } from 'lucide-react';
+import { KeyRound, Palette, LogOut, Camera, Trash2, Database, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useConfirm } from '@/context/ConfirmContext';
+import { seedDemoData } from '@/lib/demoData';
 
 const FOCUS_RING =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background';
@@ -140,6 +141,24 @@ export const Settings: React.FC = () => {
     } catch {
       toast.error('Failed to send reset email.');
     }
+  };
+
+  const handleRestoreDemoData = async () => {
+    const ok = await confirm({
+      title: 'Restore demo workspace',
+      message:
+        'This replaces the habits, tasks, finance records, playlists and rewards in this browser with a fresh demo workspace. Your account and theme are kept.',
+      confirmText: 'Restore demo data',
+    });
+    if (!ok) return;
+
+    const written = seedDemoData(true);
+    if (written.length === 0) {
+      toast.error('Could not write demo data. Check that this browser allows local storage.');
+      return;
+    }
+    toast.success('Demo workspace restored. Reloading…');
+    window.setTimeout(() => window.location.reload(), 700);
   };
 
   return (
@@ -337,11 +356,41 @@ export const Settings: React.FC = () => {
         </div>
       </Card>
 
+      {/* Demo Workspace */}
+      <Card className="space-y-4 rounded-2xl p-6">
+        <div className="flex items-center gap-2 text-text-primary">
+          <Database className="h-5 w-5 text-success" aria-hidden="true" />
+          <h2 className="font-display text-base font-bold">Demo Workspace</h2>
+        </div>
+        <p className="text-xs text-text-secondary">
+          This build ships with a ready-made workspace — five habits, a to-do list, a finance cycle,
+          two playlists, focus history and level progress — so every page has something to show.
+          This demo workspace is stored in this browser and stays with it between sign-ins.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRestoreDemoData}
+            className={cn(
+              'h-10 cursor-pointer gap-1.5 text-xs font-bold transition-all active:scale-[0.98]',
+              FOCUS_RING
+            )}
+          >
+            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>Restore demo data</span>
+          </Button>
+          <span className="text-xs text-text-secondary">
+            Replaces this browser&apos;s workspace with a fresh demo.
+          </span>
+        </div>
+      </Card>
+
       {/* Danger Zone / Logout */}
       <Card className="space-y-3 rounded-2xl border-danger/30 bg-danger/5 p-6">
         <h2 className="font-display text-base font-bold text-danger">Session Control</h2>
         <p className="text-xs text-text-secondary">
-          Sign out of your Mornigami session. Your data remains safely persisted in Cloud Firestore.
+          Sign out of your Mornigami session. Your demo workspace stays saved in this browser.
         </p>
         <Button
           variant="destructive"

@@ -57,8 +57,9 @@ export const Community: React.FC = () => {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoading(true);
+      const usersList: LeaderboardUser[] = [];
+
       try {
-        const usersList: LeaderboardUser[] = [];
         if (db) {
           const snapshot = await getDocs(collection(db, 'users'));
           snapshot.forEach((docSnap) => {
@@ -76,37 +77,38 @@ export const Community: React.FC = () => {
             }
           });
         }
-
-        // Fallback or seed if empty
-        if (usersList.length === 0) {
-          usersList.push(
-            { uid: 'mock1', displayName: 'Fold Master 🏆', userLevel: 12, userXP: 340, avatar: '🕊️', userNumber: 1, profilePicUrl: null },
-            { uid: 'mock2', displayName: 'Morning Light 🌅', userLevel: 8, userXP: 210, avatar: '🦊', userNumber: 2, profilePicUrl: null },
-            { uid: 'mock3', displayName: 'Pomodoro King 🍅', userLevel: 7, userXP: 150, avatar: '🐸', userNumber: 3, profilePicUrl: null },
-            {
-              uid: user?.uid || 'curr',
-              displayName: user?.displayName || 'You',
-              userLevel,
-              userXP,
-              avatar: activeAvatar || '🌱',
-              userNumber: userNumber || 4,
-              profilePicUrl: userDoc?.profilePicUrl || userDoc?.photoURL || user?.photoURL || null,
-            }
-          );
-        }
-
-        // Sort by level desc, then XP desc
-        usersList.sort((a, b) => {
-          if (b.userLevel !== a.userLevel) return b.userLevel - a.userLevel;
-          return b.userXP - a.userXP;
-        });
-
-        setLeaderboard(usersList);
       } catch (err) {
-        console.error('Leaderboard error:', err);
-      } finally {
-        setLoading(false);
+        // The directory read can be denied by Firestore rules. The camp should
+        // still look alive, so fall through to the seeded demo roster below.
+        console.warn('Leaderboard directory unavailable, using demo roster:', err);
       }
+
+      // Fallback or seed if empty
+      if (usersList.length === 0) {
+        usersList.push(
+          { uid: 'mock1', displayName: 'Fold Master 🏆', userLevel: 12, userXP: 340, avatar: '🕊️', userNumber: 1, profilePicUrl: null },
+          { uid: 'mock2', displayName: 'Morning Light 🌅', userLevel: 8, userXP: 210, avatar: '🦊', userNumber: 2, profilePicUrl: null },
+          { uid: 'mock3', displayName: 'Pomodoro King 🍅', userLevel: 7, userXP: 150, avatar: '🐸', userNumber: 3, profilePicUrl: null },
+          {
+            uid: user?.uid || 'curr',
+            displayName: user?.displayName || 'You',
+            userLevel,
+            userXP,
+            avatar: activeAvatar || '🌱',
+            userNumber: userNumber || 4,
+            profilePicUrl: userDoc?.profilePicUrl || userDoc?.photoURL || user?.photoURL || null,
+          }
+        );
+      }
+
+      // Sort by level desc, then XP desc
+      usersList.sort((a, b) => {
+        if (b.userLevel !== a.userLevel) return b.userLevel - a.userLevel;
+        return b.userXP - a.userXP;
+      });
+
+      setLeaderboard(usersList);
+      setLoading(false);
     };
 
     fetchLeaderboard();

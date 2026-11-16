@@ -13,6 +13,37 @@ export const readAuthError = (err: unknown): AuthErrorLike => {
 };
 
 /**
+ * User-facing copy for email/username sign-in failures.
+ *
+ * Covers Firebase Auth rejects plus the Firestore permission failure that a
+ * username lookup can hit when the account directory is not readable.
+ */
+export const signInErrorMessage = (err: unknown): string => {
+  const { code, message } = readAuthError(err);
+
+  switch (code) {
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+    case 'auth/invalid-login-credentials':
+      return 'Invalid username/email or password. Please check your credentials.';
+    case 'auth/too-many-requests':
+      return 'Too many failed login attempts. Please try again later or reset your password.';
+    case 'auth/invalid-email':
+      return 'That email address is not valid.';
+    case 'auth/network-request-failed':
+      return 'Could not reach the sign-in service. Check your connection and try again.';
+    case 'permission-denied':
+      return 'This build cannot look up usernames. Please sign in with your email address.';
+    default:
+      if (message && /insufficient permissions/i.test(message)) {
+        return 'This build cannot look up usernames. Please sign in with your email address.';
+      }
+      return message || 'Failed to sign in. Please verify your credentials.';
+  }
+};
+
+/**
  * User-facing copy for Google sign-in failures.
  *
  * Provider/setup faults are described in terms the account owner can act on, while
