@@ -1,36 +1,63 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Card, CardContent } from '@/components/ui/Card';
-import {
-  Mail,
-  Lock,
-  User,
-  Eye,
-  EyeOff,
-  Sun,
-  Moon,
-  AlertCircle,
-  CheckCircle2,
-  ArrowRight,
-  Sparkles,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import iconLogo from '@/public/icon.png';
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react';
+import '@/styles/login.css';
+
+type AuthMode = 'signin' | 'signup' | 'forgot';
+type FieldName = 'username' | 'email' | 'password' | 'confirmPassword';
+type FieldErrors = Partial<Record<FieldName, string>>;
+type LoginRouteState = { from?: { pathname?: string } } | null;
+
+const readAuthError = (err: unknown): { code?: string; message?: string } => {
+  if (err && typeof err === 'object') {
+    const { code, message } = err as { code?: unknown; message?: unknown };
+    return {
+      code: typeof code === 'string' ? code : undefined,
+      message: typeof message === 'string' ? message : undefined,
+    };
+  }
+  return {};
+};
+
+const GoogleMark: React.FC = () => (
+  <svg
+    className="h-[18px] w-[18px] shrink-0"
+    viewBox="0 0 48 48"
+    width="18"
+    height="18"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path
+      fill="#EA4335"
+      d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+    />
+    <path
+      fill="#4285F4"
+      d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+    />
+    <path
+      fill="#34A853"
+      d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+    />
+  </svg>
+);
 
 export const Login: React.FC = () => {
   const { user, loading, signIn, signUp, resetPassword } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as any)?.from?.pathname || '/';
+  const routeState = location.state as LoginRouteState;
+  const from = routeState?.from?.pathname || '/';
 
   // Modes: 'signin' | 'signup' | 'forgot'
-  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
+  const [mode, setMode] = useState<AuthMode>('signin');
 
   // Form fields
   const [username, setUsername] = useState('');
@@ -42,7 +69,16 @@ export const Login: React.FC = () => {
   // Status state
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [alertNonce, setAlertNonce] = useState(0);
+
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmPasswordRef = useRef<HTMLInputElement>(null);
+  const alertRef = useRef<HTMLDivElement>(null);
+  const modeChangeRequested = useRef(false);
 
   // If already authenticated, redirect immediately
   useEffect(() => {
@@ -51,432 +87,573 @@ export const Login: React.FC = () => {
     }
   }, [user, loading, navigate, from]);
 
-  const resetFormState = (newMode: 'signin' | 'signup' | 'forgot') => {
+  // After a failed request, send focus to the message that explains why.
+  useEffect(() => {
+    if (alertNonce > 0 && error) {
+      alertRef.current?.focus();
+    }
+  }, [alertNonce, error]);
+
+  // Switching modes replaces the form, so move focus to the first field.
+  useEffect(() => {
+    if (!modeChangeRequested.current) return;
+    modeChangeRequested.current = false;
+    if (mode === 'signup') {
+      usernameRef.current?.focus();
+    } else {
+      emailRef.current?.focus();
+    }
+  }, [mode]);
+
+  const announceError = (message: string) => {
+    setError(message);
+    setAlertNonce((nonce) => nonce + 1);
+  };
+
+  const clearFieldError = (field: FieldName) => {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+    if (error) setError('');
+  };
+
+  const resetFormState = (newMode: AuthMode) => {
+    if (newMode !== mode) modeChangeRequested.current = true;
     setMode(newMode);
     setError('');
     setSuccess('');
+    setFieldErrors({});
+    setUsername('');
     setPassword('');
     setConfirmPassword('');
+    setShowPassword(false);
     if (newMode !== 'signin' && !email.includes('@')) {
       setEmail('');
     }
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitting) return;
     setError('');
     setSuccess('');
+    setFieldErrors({});
 
-    if (!email.trim() || !password) {
-      setError('Please provide your username or email, and password.');
+    const nextErrors: FieldErrors = {};
+    if (!email.trim()) nextErrors.username = 'Please provide your username or email.';
+    if (!password) nextErrors.password = 'Please provide your password.';
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      if (nextErrors.username) {
+        emailRef.current?.focus();
+      } else {
+        passwordRef.current?.focus();
+      }
       return;
     }
 
     setSubmitting(true);
     try {
       await signIn(email.trim(), password);
-      toast.success('Welcome back to Mornigami! 🌅');
       navigate(from, { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Sign in error:', err);
+      const { code, message } = readAuthError(err);
       let msg = 'Failed to sign in. Please verify your credentials.';
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+      if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
         msg = 'Invalid username/email or password. Please check your credentials.';
-      } else if (err.code === 'auth/too-many-requests') {
+      } else if (code === 'auth/too-many-requests') {
         msg = 'Too many failed login attempts. Please try again later or reset your password.';
-      } else if (err.message) {
-        msg = err.message;
+      } else if (message) {
+        msg = message;
       }
-      setError(msg);
+      announceError(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignUp = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitting) return;
     setError('');
     setSuccess('');
+    setFieldErrors({});
 
-    if (!username.trim()) {
-      setError('Please choose a username for your profile.');
-      return;
-    }
-    if (!email.trim()) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must contain at least 6 characters.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match. Please re-enter.');
+    const nextErrors: FieldErrors = {};
+    if (!username.trim()) nextErrors.username = 'Please choose a username for your profile.';
+    if (!email.trim()) nextErrors.email = 'Please enter a valid email address.';
+    if (password.length < 6) nextErrors.password = 'Password must contain at least 6 characters.';
+    if (password !== confirmPassword) nextErrors.confirmPassword = 'Passwords do not match. Please re-enter.';
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      if (nextErrors.username) {
+        usernameRef.current?.focus();
+      } else if (nextErrors.email) {
+        emailRef.current?.focus();
+      } else if (nextErrors.password) {
+        passwordRef.current?.focus();
+      } else {
+        confirmPasswordRef.current?.focus();
+      }
       return;
     }
 
     setSubmitting(true);
     try {
       await signUp(username.trim(), email.trim(), password);
-      toast.success('Account created successfully! Welcome to Mornigami 🕊️');
       navigate(from, { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Sign up error:', err);
+      const { code, message } = readAuthError(err);
       let msg = 'Failed to create account. Please try again.';
-      if (err.code === 'auth/email-already-in-use') {
+      if (code === 'auth/email-already-in-use') {
         msg = 'This email is already associated with an account. Try signing in instead.';
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (code === 'auth/invalid-email') {
         msg = 'The email address is not formatted correctly.';
-      } else if (err.message) {
-        msg = err.message;
+      } else if (message) {
+        msg = message;
       }
-      setError(msg);
+      announceError(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleForgotPassword = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitting) return;
     setError('');
     setSuccess('');
+    setFieldErrors({});
 
     if (!email.trim()) {
-      setError('Please enter your email address.');
+      setFieldErrors({ email: 'Please enter your email address.' });
+      emailRef.current?.focus();
       return;
     }
 
     setSubmitting(true);
     try {
       await resetPassword(email.trim());
-      setSuccess('A password reset link has been dispatched to your email. Check your inbox!');
-      toast.success('Reset link sent!');
-    } catch (err: any) {
+      setSuccess('We sent a reset link to your email. Check your inbox.');
+    } catch (err: unknown) {
       console.error('Password reset error:', err);
+      const { code, message } = readAuthError(err);
       let msg = 'Failed to send password reset email.';
-      if (err.code === 'auth/user-not-found') {
+      if (code === 'auth/user-not-found') {
         msg = 'No account found with this email address.';
-      } else if (err.message) {
-        msg = err.message;
+      } else if (message) {
+        msg = message;
       }
-      setError(msg);
+      announceError(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="auth-page flex items-center justify-center px-5 py-10">
+        <p role="status" className="flex items-center gap-3 text-[13px] text-[var(--auth-muted)]">
+          <Loader2 className="auth-spinner animate-spin text-[var(--auth-primary)]" aria-hidden="true" />
+          Checking your session…
+        </p>
+      </div>
+    );
+  }
+
+  // The redirect effect is already navigating away.
+  if (user) return null;
+
+  const heading =
+    mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create your account' : 'Reset password';
+
+  const subtitle =
+    mode === 'signin'
+      ? 'Welcome back.'
+      : mode === 'signup'
+        ? 'Start folding your mornings into shape.'
+        : 'We’ll email you a link to reset your password.';
+
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground relative selection:bg-primary selection:text-primary-foreground overflow-hidden">
-      {/* Background Decorative Origami Gradients */}
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="auth-page flex flex-col items-center justify-center px-5 py-10 sm:px-8 sm:py-16">
+      <div className="auth-column w-full max-w-[380px]">
+        <div className="auth-wordmark">Mornigami</div>
 
-      {/* Top Bar with Theme Toggle */}
-      <header className="h-16 px-6 sm:px-12 flex items-center justify-between relative z-10">
-        <div className="flex items-center gap-2.5">
-          <img
-            src={iconLogo}
-            alt="Mornigami Logo"
-            className="w-8 h-8 object-contain rounded-xl shadow-xs"
-          />
-          <span className="font-display font-black text-lg tracking-tight text-primary">
-            Mornigami
-          </span>
-        </div>
+        <h1 className="auth-title mt-10">{heading}</h1>
+        <p className="auth-subtitle mt-2.5">{subtitle}</p>
 
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={toggleTheme}
-          className="rounded-xl w-9 h-9"
-          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-4 h-4 text-warning" />
-          ) : (
-            <Moon className="w-4 h-4 text-text-secondary" />
-          )}
-        </Button>
-      </header>
-
-      {/* Main Authentication Container */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 z-10">
-        <Card className="max-w-md w-full border-border/80 bg-surface/90 backdrop-blur-md shadow-xl rounded-3xl overflow-hidden animate-in fade-in-50 zoom-in-95 duration-300">
-          <CardContent className="p-6 sm:p-8 space-y-6">
-            {/* Header / Brand Welcome */}
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-xs text-2xl">
-                {mode === 'signin' ? '🌅' : mode === 'signup' ? '🌱' : '🔑'}
-              </div>
-              <h1 className="font-display text-2xl sm:text-3xl font-black text-text-primary tracking-tight">
-                {mode === 'signin' && 'Welcome Back'}
-                {mode === 'signup' && 'Create Your Account'}
-                {mode === 'forgot' && 'Reset Password'}
-              </h1>
-              <p className="text-xs text-text-secondary">
-                {mode === 'signin' && 'Enter your credentials to enter your Mornigami hub.'}
-                {mode === 'signup' && 'Fold your daily routines into structure and unlock rewards.'}
-                {mode === 'forgot' && "We'll send you an email with instructions to reset your password."}
-              </p>
+        <div className="mt-7">
+          {error && (
+            <div
+              ref={alertRef}
+              role="alert"
+              aria-atomic="true"
+              tabIndex={-1}
+              className="auth-alert auth-alert-error mb-4"
+            >
+              <AlertCircle className="h-4 w-4" aria-hidden="true" />
+              <span>{error}</span>
             </div>
+          )}
 
-            {/* Error & Success Alerts */}
-            {error && (
-              <div className="bg-danger/10 border border-danger/20 text-danger rounded-2xl p-3.5 text-xs font-semibold flex items-start gap-2.5 animate-in fade-in-50">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
+          {success && (
+            <div role="status" className="auth-alert auth-alert-success mb-4">
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              <span>{success}</span>
+            </div>
+          )}
 
-            {success && (
-              <div className="bg-success/10 border border-success/20 text-success rounded-2xl p-3.5 text-xs font-semibold flex items-start gap-2.5 animate-in fade-in-50">
-                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{success}</span>
-              </div>
-            )}
-
-            {/* Mode: Sign In Form */}
-            {mode === 'signin' && (
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-text-secondary">
-                    Email or Username
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-text-tertiary absolute left-3 top-1/2 -translate-y-1/2" />
-                    <Input
-                      type="text"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Username or you@example.com"
-                      className="pl-9 h-11 text-xs"
-                      autoComplete="username"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-text-secondary">
-                      Password
+          {mode === 'signin' && (
+            <>
+              <form noValidate onSubmit={handleSignIn}>
+                <div className="space-y-5">
+                  <div>
+                    <label htmlFor="signin-username" className="auth-label">
+                      Email or username
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => resetFormState('forgot')}
-                      className="text-[11px] font-bold text-primary hover:underline"
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-text-tertiary absolute left-3 top-1/2 -translate-y-1/2" />
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="pl-9 pr-9 h-11 text-xs"
-                      autoComplete="current-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary p-0.5"
-                      title={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full h-11 font-bold text-xs gap-2 rounded-xl mt-2"
-                >
-                  {submitting ? (
-                    <span>Signing in...</span>
-                  ) : (
-                    <>
-                      <span>Unfold Your Day</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </Button>
-
-                <div className="pt-2 text-center text-xs text-text-secondary">
-                  <span>Don't have an account yet? </span>
-                  <button
-                    type="button"
-                    onClick={() => resetFormState('signup')}
-                    className="font-bold text-primary hover:underline ml-0.5"
-                  >
-                    Create one now
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Mode: Sign Up Form */}
-            {mode === 'signup' && (
-              <form onSubmit={handleSignUp} className="space-y-3.5">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-text-secondary">
-                    Username
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-text-tertiary absolute left-3 top-1/2 -translate-y-1/2" />
-                    <Input
+                    <input
+                      ref={emailRef}
+                      id="signin-username"
+                      name="username"
                       type="text"
-                      required
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="OrigamiFolder"
-                      className="pl-9 h-11 text-xs"
                       autoComplete="username"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-text-secondary">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-text-tertiary absolute left-3 top-1/2 -translate-y-1/2" />
-                    <Input
-                      type="email"
-                      required
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      className="auth-input"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="pl-9 h-11 text-xs"
-                      autoComplete="email"
+                      onChange={(event) => {
+                        setEmail(event.target.value);
+                        clearFieldError('username');
+                      }}
+                      aria-invalid={fieldErrors.username ? true : undefined}
+                      aria-describedby={fieldErrors.username ? 'signin-username-error' : undefined}
                     />
+                    {fieldErrors.username && (
+                      <p id="signin-username-error" className="auth-field-error">
+                        {fieldErrors.username}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="auth-label-row">
+                      <label htmlFor="signin-password" className="auth-label">
+                        Password
+                      </label>
+                      <button type="button" className="auth-link" onClick={() => resetFormState('forgot')}>
+                        Forgot password?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        ref={passwordRef}
+                        id="signin-password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="current-password"
+                        className="auth-input auth-input-action"
+                        value={password}
+                        onChange={(event) => {
+                          setPassword(event.target.value);
+                          clearFieldError('password');
+                        }}
+                        aria-invalid={fieldErrors.password ? true : undefined}
+                        aria-describedby={fieldErrors.password ? 'signin-password-error' : undefined}
+                      />
+                      <button
+                        type="button"
+                        className="auth-eye"
+                        onClick={() => setShowPassword((visible) => !visible)}
+                        aria-label="Show password"
+                        aria-pressed={showPassword}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-[18px] w-[18px]" aria-hidden="true" />
+                        ) : (
+                          <Eye className="h-[18px] w-[18px]" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
+                    {fieldErrors.password && (
+                      <p id="signin-password-error" className="auth-field-error">
+                        {fieldErrors.password}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-text-secondary">
-                    Password (min. 6 characters)
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-text-tertiary absolute left-3 top-1/2 -translate-y-1/2" />
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="pl-9 pr-9 h-11 text-xs"
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary p-0.5"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-text-secondary">
-                    Confirm Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-text-tertiary absolute left-3 top-1/2 -translate-y-1/2" />
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="pl-9 h-11 text-xs"
-                      autoComplete="new-password"
-                    />
-                  </div>
-                </div>
-
-                <Button
+                <button
                   type="submit"
+                  className="auth-btn auth-btn-primary mt-6"
                   disabled={submitting}
-                  className="w-full h-11 font-bold text-xs gap-2 rounded-xl mt-2"
+                  aria-busy={submitting || undefined}
                 >
                   {submitting ? (
-                    <span>Creating account...</span>
-                  ) : (
                     <>
-                      <span>Create Account & Begin</span>
-                      <Sparkles className="w-4 h-4" />
+                      <Loader2 className="auth-spinner animate-spin" aria-hidden="true" />
+                      <span>Signing in…</span>
                     </>
+                  ) : (
+                    <span>Sign in</span>
                   )}
-                </Button>
-
-                <div className="pt-2 text-center text-xs text-text-secondary">
-                  <span>Already have an account? </span>
-                  <button
-                    type="button"
-                    onClick={() => resetFormState('signin')}
-                    className="font-bold text-primary hover:underline ml-0.5"
-                  >
-                    Sign in
-                  </button>
-                </div>
+                </button>
               </form>
-            )}
 
-            {/* Mode: Forgot Password Form */}
-            {mode === 'forgot' && (
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-text-secondary">
-                    Your Registered Email
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-text-tertiary absolute left-3 top-1/2 -translate-y-1/2" />
-                    <Input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="pl-9 h-11 text-xs"
-                      autoComplete="email"
+              <div className="auth-divider">
+                <span>or</span>
+              </div>
+
+              <button
+                type="button"
+                className="auth-btn auth-btn-google"
+                disabled
+                aria-describedby="google-unavailable"
+              >
+                <GoogleMark />
+                <span>Sign in with Google</span>
+              </button>
+              <p id="google-unavailable" className="auth-note mt-2">
+                Google sign-in isn’t available in this build.
+              </p>
+
+              <button
+                type="button"
+                className="auth-btn auth-btn-secondary mt-3"
+                onClick={() => resetFormState('signup')}
+              >
+                Create an account
+              </button>
+            </>
+          )}
+
+          {mode === 'signup' && (
+            <>
+              <form noValidate onSubmit={handleSignUp}>
+                <div className="space-y-5">
+                  <div>
+                    <label htmlFor="signup-username" className="auth-label">
+                      Username
+                    </label>
+                    <input
+                      ref={usernameRef}
+                      id="signup-username"
+                      name="username"
+                      type="text"
+                      autoComplete="username"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      className="auth-input"
+                      value={username}
+                      onChange={(event) => {
+                        setUsername(event.target.value);
+                        clearFieldError('username');
+                      }}
+                      aria-invalid={fieldErrors.username ? true : undefined}
+                      aria-describedby={fieldErrors.username ? 'signup-username-error' : undefined}
                     />
+                    {fieldErrors.username && (
+                      <p id="signup-username-error" className="auth-field-error">
+                        {fieldErrors.username}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="signup-email" className="auth-label">
+                      Email
+                    </label>
+                    <input
+                      ref={emailRef}
+                      id="signup-email"
+                      name="email"
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      className="auth-input"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(event) => {
+                        setEmail(event.target.value);
+                        clearFieldError('email');
+                      }}
+                      aria-invalid={fieldErrors.email ? true : undefined}
+                      aria-describedby={fieldErrors.email ? 'signup-email-error' : undefined}
+                    />
+                    {fieldErrors.email && (
+                      <p id="signup-email-error" className="auth-field-error">
+                        {fieldErrors.email}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="auth-label-row">
+                      <label htmlFor="signup-password" className="auth-label">
+                        Password
+                      </label>
+                      <span className="auth-label-hint">At least 6 characters</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        ref={passwordRef}
+                        id="signup-password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        className="auth-input auth-input-action"
+                        value={password}
+                        onChange={(event) => {
+                          setPassword(event.target.value);
+                          clearFieldError('password');
+                        }}
+                        aria-invalid={fieldErrors.password ? true : undefined}
+                        aria-describedby={fieldErrors.password ? 'signup-password-error' : undefined}
+                      />
+                      <button
+                        type="button"
+                        className="auth-eye"
+                        onClick={() => setShowPassword((visible) => !visible)}
+                        aria-label="Show new password"
+                        aria-pressed={showPassword}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-[18px] w-[18px]" aria-hidden="true" />
+                        ) : (
+                          <Eye className="h-[18px] w-[18px]" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
+                    {fieldErrors.password && (
+                      <p id="signup-password-error" className="auth-field-error">
+                        {fieldErrors.password}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="signup-confirm-password" className="auth-label">
+                      Confirm password
+                    </label>
+                    <input
+                      ref={confirmPasswordRef}
+                      id="signup-confirm-password"
+                      name="confirmPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      className="auth-input"
+                      value={confirmPassword}
+                      onChange={(event) => {
+                        setConfirmPassword(event.target.value);
+                        clearFieldError('confirmPassword');
+                      }}
+                      aria-invalid={fieldErrors.confirmPassword ? true : undefined}
+                      aria-describedby={
+                        fieldErrors.confirmPassword ? 'signup-confirm-error' : undefined
+                      }
+                    />
+                    {fieldErrors.confirmPassword && (
+                      <p id="signup-confirm-error" className="auth-field-error">
+                        {fieldErrors.confirmPassword}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <Button
+                <button
                   type="submit"
+                  className="auth-btn auth-btn-primary mt-6"
                   disabled={submitting}
-                  className="w-full h-11 font-bold text-xs gap-2 rounded-xl"
+                  aria-busy={submitting || undefined}
                 >
-                  {submitting ? 'Sending link...' : 'Send Password Reset Link'}
-                </Button>
-
-                <div className="text-center pt-2">
-                  <button
-                    type="button"
-                    onClick={() => resetFormState('signin')}
-                    className="text-xs font-bold text-text-secondary hover:text-primary transition-colors"
-                  >
-                    ← Back to Sign In
-                  </button>
-                </div>
+                  {submitting ? (
+                    <>
+                      <Loader2 className="auth-spinner animate-spin" aria-hidden="true" />
+                      <span>Creating account…</span>
+                    </>
+                  ) : (
+                    <span>Create account</span>
+                  )}
+                </button>
               </form>
-            )}
-          </CardContent>
-        </Card>
-      </main>
 
-      {/* Footer copyright */}
-      <footer className="py-4 text-center text-[11px] text-text-tertiary">
-        Mornigami • Shape your Morning, Fold your Routine
-      </footer>
+              <div className="mt-5 flex justify-center">
+                <button type="button" className="auth-link" onClick={() => resetFormState('signin')}>
+                  Back to sign in
+                </button>
+              </div>
+            </>
+          )}
+
+          {mode === 'forgot' && (
+            <>
+              <form noValidate onSubmit={handleForgotPassword}>
+                <div>
+                  <label htmlFor="forgot-email" className="auth-label">
+                    Email
+                  </label>
+                  <input
+                    ref={emailRef}
+                    id="forgot-email"
+                    name="email"
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    className="auth-input"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(event) => {
+                      setEmail(event.target.value);
+                      clearFieldError('email');
+                    }}
+                    aria-invalid={fieldErrors.email ? true : undefined}
+                    aria-describedby={fieldErrors.email ? 'forgot-email-error' : undefined}
+                  />
+                  {fieldErrors.email && (
+                    <p id="forgot-email-error" className="auth-field-error">
+                      {fieldErrors.email}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="auth-btn auth-btn-primary mt-6"
+                  disabled={submitting}
+                  aria-busy={submitting || undefined}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="auth-spinner animate-spin" aria-hidden="true" />
+                      <span>Sending link…</span>
+                    </>
+                  ) : (
+                    <span>Send reset link</span>
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-5 flex justify-center">
+                <button type="button" className="auth-link" onClick={() => resetFormState('signin')}>
+                  Back to sign in
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <p className="auth-footnote mt-2.5 w-full max-w-[380px]">Mornigami — shape your morning, fold your routine.</p>
     </div>
   );
 };

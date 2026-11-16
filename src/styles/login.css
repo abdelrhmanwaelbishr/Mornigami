@@ -1,0 +1,439 @@
+/* ---------------------------------------------------------------------------
+   Sign-in screen — page-scoped theme.
+   Every custom property and rule is namespaced under .auth-page so the global
+   tokens in src/index.css are never touched. Dark mode is keyed off the .dark
+   class that ThemeContext puts on <html>.
+   --------------------------------------------------------------------------- */
+
+.auth-page {
+  /* Light — the canonical look */
+  --auth-bg: #f8fafc;
+  --auth-surface: #ffffff;
+  --auth-field: #ffffff;
+  --auth-ink: #0f172a;
+  --auth-muted: #475569;
+  --auth-subtle: #64748b;
+  --auth-border: #7c8ba1;
+  --auth-border-strong: #64748b;
+  --auth-rule: #a9bedb;
+  --auth-primary: #2563eb;
+  --auth-primary-hover: #1d4ed8;
+  --auth-solid: #2563eb;
+  --auth-solid-hover: #1d4ed8;
+  --auth-solid-active: #1e40af;
+  --auth-solid-disabled: #3b6fd4;
+  --auth-on-primary: #ffffff;
+  --auth-link: #2563eb;
+  --auth-link-hover: #1d4ed8;
+  --auth-focus: #2563eb;
+  --auth-danger: #dc2626;
+  --auth-danger-text: #b91c1c;
+  --auth-danger-bg: #fef2f2;
+  --auth-danger-border: #fecaca;
+  --auth-success: #15803d;
+  --auth-success-bg: #f0fdf4;
+  --auth-success-border: #bbf7d0;
+  --auth-hover-surface: #f8fafc;
+  --auth-active-surface: #f1f5f9;
+  --auth-disabled-bg: #f8fafc;
+  --auth-disabled-text: #475569;
+
+  min-height: 100vh;
+  min-height: 100svh;
+  background-color: var(--auth-bg);
+  color: var(--auth-ink);
+}
+
+.dark .auth-page {
+  --auth-bg: #0b1220;
+  --auth-surface: #111a2e;
+  --auth-field: #0e1729;
+  --auth-ink: #e2e8f0;
+  --auth-muted: #94a3b8;
+  --auth-subtle: #94a3b8;
+  --auth-border: #5b6f93;
+  --auth-border-strong: #63799f;
+  --auth-rule: #33466a;
+  /* Blue reads as an accent on dark. The solid button keeps a deeper fill so
+     its white label stays above 4.5:1. */
+  --auth-primary: #3b82f6;
+  --auth-primary-hover: #60a5fa;
+  --auth-solid: #2563eb;
+  --auth-solid-hover: #1d4ed8;
+  --auth-solid-active: #1e40af;
+  --auth-solid-disabled: #2f5cb8;
+  --auth-on-primary: #ffffff;
+  --auth-link: #60a5fa;
+  --auth-link-hover: #93c5fd;
+  --auth-focus: #3b82f6;
+  --auth-danger: #f87171;
+  --auth-danger-text: #fca5a5;
+  --auth-danger-bg: #2a1215;
+  --auth-danger-border: #7f1d1d;
+  --auth-success: #4ade80;
+  --auth-success-bg: #0c2418;
+  --auth-success-border: #166534;
+  --auth-hover-surface: #16223a;
+  --auth-active-surface: #1a2742;
+  --auth-disabled-bg: #0e1729;
+  --auth-disabled-text: #94a3b8;
+}
+
+/* The body already carries a global selection style; this is the page-scoped
+   blue. `html` gives it enough specificity without touching global rules. */
+html .auth-page ::selection {
+  background: var(--auth-primary);
+  color: #ffffff;
+}
+
+.auth-page :focus-visible {
+  outline: 2px solid var(--auth-focus);
+  outline-offset: 2px;
+}
+
+/* Column ------------------------------------------------------------------ */
+
+/* Not a card: a bare column on the page ground, defined by a single 1px rule
+   down its left edge. The rule spans the content, so the footnote (rendered
+   outside this element) sits clear of it. */
+.auth-page .auth-column {
+  padding: 2px 0 10px clamp(20px, 4vw, 28px);
+  border-left: 1px solid var(--auth-rule);
+}
+
+/* Wordmark and headings --------------------------------------------------- */
+
+.auth-page .auth-wordmark {
+  font-family: 'Fraunces', serif;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--auth-ink);
+}
+
+.auth-page .auth-title {
+  font-family: 'Fraunces', serif;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--auth-ink);
+  text-wrap: balance;
+}
+
+@media (min-width: 640px) {
+  .auth-page .auth-title {
+    font-size: 40px;
+  }
+}
+
+.auth-page .auth-subtitle {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--auth-muted);
+}
+
+/* Fields ------------------------------------------------------------------ */
+
+.auth-page .auth-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--auth-muted);
+}
+
+.auth-page .auth-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.auth-page .auth-label-row .auth-label {
+  margin-bottom: 0;
+}
+
+/* The link keeps a 44px+ hit area without inflating the 20px label row. */
+.auth-page .auth-label-row .auth-link {
+  min-height: 0;
+  position: relative;
+}
+
+.auth-page .auth-label-row .auth-link::after {
+  content: '';
+  position: absolute;
+  inset: -12px -8px;
+}
+
+.auth-page .auth-label-hint {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--auth-subtle);
+}
+
+.auth-page .auth-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--auth-border);
+  border-radius: 12px;
+  background-color: var(--auth-field);
+  color: var(--auth-ink);
+  /* 16px keeps iOS from zooming the viewport on focus. */
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  caret-color: var(--auth-primary);
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.auth-page .auth-input:hover {
+  border-color: var(--auth-border-strong);
+}
+
+.auth-page .auth-input:focus {
+  border-color: var(--auth-primary);
+}
+
+.auth-page .auth-input[aria-invalid='true'],
+.auth-page .auth-input[aria-invalid='true']:hover {
+  border-color: var(--auth-danger);
+}
+
+/* Muted example text still clears 4.5:1 on the field fill. */
+.auth-page .auth-input::placeholder {
+  color: var(--auth-subtle);
+  opacity: 1;
+}
+
+.auth-page .auth-input-action {
+  padding-right: 46px;
+}
+
+.auth-page .auth-eye {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background-color: transparent;
+  color: var(--auth-subtle);
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.auth-page .auth-eye:hover {
+  color: var(--auth-link);
+}
+
+.auth-page .auth-field-error {
+  margin-top: 7px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--auth-danger-text);
+}
+
+/* Buttons ----------------------------------------------------------------- */
+
+.auth-page .auth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 48px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.auth-page .auth-btn-primary {
+  background-color: var(--auth-solid);
+  color: var(--auth-on-primary);
+}
+
+.auth-page .auth-btn-primary:hover:not(:disabled) {
+  background-color: var(--auth-solid-hover);
+}
+
+.auth-page .auth-btn-primary:active:not(:disabled) {
+  background-color: var(--auth-solid-active);
+}
+
+/* Loading state keeps a filled surface with white text so contrast holds
+   above 4.5:1; the label and spinner carry the state change. */
+.auth-page .auth-btn-primary:disabled {
+  background-color: var(--auth-solid-disabled);
+  color: var(--auth-on-primary);
+  cursor: not-allowed;
+}
+
+.auth-page .auth-btn-google,
+.auth-page .auth-btn-secondary {
+  background-color: var(--auth-surface);
+  color: var(--auth-ink);
+  border-color: var(--auth-border);
+}
+
+.auth-page .auth-btn-google:hover:not(:disabled),
+.auth-page .auth-btn-secondary:hover:not(:disabled) {
+  background-color: var(--auth-hover-surface);
+  border-color: var(--auth-border-strong);
+}
+
+.auth-page .auth-btn-secondary:active:not(:disabled) {
+  background-color: var(--auth-active-surface);
+}
+
+/* Google OAuth is not available in this build; the control is honest about it
+   rather than pretending to be interactive. */
+.auth-page .auth-btn-google:disabled {
+  background-color: var(--auth-disabled-bg);
+  color: var(--auth-disabled-text);
+  border-color: var(--auth-border);
+  cursor: not-allowed;
+}
+
+.auth-page .auth-btn-google:disabled svg {
+  opacity: 0.55;
+}
+
+.auth-page .auth-spinner {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+/* Text links -------------------------------------------------------------- */
+
+.auth-page .auth-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 2px;
+  border: 0;
+  background-color: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--auth-link);
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.auth-page .auth-link:hover {
+  color: var(--auth-link-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Divider ----------------------------------------------------------------- */
+
+.auth-page .auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.auth-page .auth-divider::before,
+.auth-page .auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--auth-border);
+}
+
+.auth-page .auth-divider span {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--auth-subtle);
+}
+
+/* Supporting copy --------------------------------------------------------- */
+
+.auth-page .auth-note {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--auth-muted);
+}
+
+.auth-page .auth-footnote {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--auth-muted);
+  text-align: center;
+}
+
+/* Messages ---------------------------------------------------------------- */
+
+.auth-page .auth-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  border: 1px solid;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.auth-page .auth-alert svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.auth-page .auth-alert-error {
+  background-color: var(--auth-danger-bg);
+  border-color: var(--auth-danger-border);
+  color: var(--auth-danger-text);
+}
+
+.auth-page .auth-alert-success {
+  background-color: var(--auth-success-bg);
+  border-color: var(--auth-success-border);
+  color: var(--auth-success);
+}
+
+/* Motion ------------------------------------------------------------------ */
+
+/* The only motion on this page is a small status spinner; the adjacent label
+   carries the same information, so it can stop for reduced-motion users. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-page,
+  .auth-page *,
+  .auth-page *::before,
+  .auth-page *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .auth-page .animate-spin {
+    animation: none !important;
+  }
+}
+
