@@ -16,8 +16,13 @@ import {
   query,
   where,
   runTransaction,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   type User,
 } from '@/lib/firebase';
+import { googleAuthErrorMessage, readAuthError } from '@/lib/authErrors';
 import type { UserDoc, UserRole } from '@/types';
 
 interface AuthContextType {
@@ -28,6 +33,10 @@ interface AuthContextType {
   loading: boolean;
   signIn: (emailOrUsername: string, pass: string) => Promise<void>;
   signUp: (username: string, email: string, pass: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  /** Message from a failed Google redirect sign-in, replayed once the page reloads. */
+  startupAuthError: string | null;
+  clearStartupAuthError: () => void;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (displayName: string, photoURL?: string) => Promise<void>;
@@ -45,6 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return cached ? parseInt(cached, 10) : null;
   });
   const [loading, setLoading] = useState(true);
+  const [startupAuthError, setStartupAuthError] = useState<string | null>(null);
 
   // Backfill or assign sequential user number
   const assignSequentialUserNumber = async (firebaseUser: User, username: string, email: string): Promise<number> => {
@@ -162,6 +172,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
+  // A Google sign-in that fell back to a redirect lands back here on a fresh page
+  // load; surface its failure once so the login screen can explain what happened.
+  useEffect(() => {
+    let active = true;
+    getRedirectResult(auth)
+      .catch((err: unknown) => {
+        console.warn('Google redirect sign-in failed:', err);
+        if (active) setStartupAuthError(googleAuthErrorMessage(err));
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const clearStartupAuthError = () => setStartupAuthError(null);
+
   const refreshUserData = async () => {
     if (user) {
       await fetchUserData(user);
@@ -230,6 +256,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (cred.user) {
       await fbUpdateProfile(cred.user, { displayName: trimmedUsername });
       await fetchUserData(cred.user);
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    // Let people pick the account instead of silently reusing the last one.
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (err: unknown) {
+      const { code } = readAuthError(err);
+      // Pop-ups are blocked in some embedded/PWA contexts; a redirect is the
+      // supported fallback there. Every other failure is surfaced to the caller.
+      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      throw err;
     }
   };
 
@@ -307,6 +352,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         signIn,
         signUp,
+        signInWithGoogle,
+        startupAuthError,
+        clearStartupAuthError,
         signOut,
         resetPassword,
         updateUserProfile,

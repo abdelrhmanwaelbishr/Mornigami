@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { readAuthError, googleAuthErrorMessage } from '@/lib/authErrors';
 import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react';
 import '@/styles/login.css';
 
@@ -8,17 +9,6 @@ type AuthMode = 'signin' | 'signup' | 'forgot';
 type FieldName = 'username' | 'email' | 'password' | 'confirmPassword';
 type FieldErrors = Partial<Record<FieldName, string>>;
 type LoginRouteState = { from?: { pathname?: string } } | null;
-
-const readAuthError = (err: unknown): { code?: string; message?: string } => {
-  if (err && typeof err === 'object') {
-    const { code, message } = err as { code?: unknown; message?: unknown };
-    return {
-      code: typeof code === 'string' ? code : undefined,
-      message: typeof message === 'string' ? message : undefined,
-    };
-  }
-  return {};
-};
 
 const GoogleMark: React.FC = () => (
   <svg
@@ -49,7 +39,8 @@ const GoogleMark: React.FC = () => (
 );
 
 export const Login: React.FC = () => {
-  const { user, loading, signIn, signUp, resetPassword } = useAuth();
+  const { user, loading, signIn, signUp, signInWithGoogle, resetPassword, startupAuthError, clearStartupAuthError } =
+    useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -71,6 +62,7 @@ export const Login: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [alertNonce, setAlertNonce] = useState(0);
 
   const usernameRef = useRef<HTMLInputElement>(null);
@@ -108,6 +100,31 @@ export const Login: React.FC = () => {
   const announceError = (message: string) => {
     setError(message);
     setAlertNonce((nonce) => nonce + 1);
+  };
+
+  // A failed Google redirect lands back on this screen after a reload; show it once.
+  useEffect(() => {
+    if (!startupAuthError) return;
+    setError(startupAuthError);
+    setAlertNonce((nonce) => nonce + 1);
+    clearStartupAuthError();
+  }, [startupAuthError, clearStartupAuthError]);
+
+  const handleGoogleSignIn = async () => {
+    if (submitting || googleLoading) return;
+    setError('');
+    setSuccess('');
+    setFieldErrors({});
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      // The auth-state effect above navigates as soon as the session lands.
+    } catch (err: unknown) {
+      console.error('Google sign-in error:', err);
+      announceError(googleAuthErrorMessage(err));
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   const clearFieldError = (field: FieldName) => {
@@ -413,15 +430,22 @@ export const Login: React.FC = () => {
               <button
                 type="button"
                 className="auth-btn auth-btn-google"
-                disabled
-                aria-describedby="google-unavailable"
+                onClick={handleGoogleSignIn}
+                disabled={submitting || googleLoading}
+                aria-busy={googleLoading || undefined}
               >
-                <GoogleMark />
-                <span>Sign in with Google</span>
+                {googleLoading ? (
+                  <>
+                    <Loader2 className="auth-spinner animate-spin" aria-hidden="true" />
+                    <span>Connecting to Google…</span>
+                  </>
+                ) : (
+                  <>
+                    <GoogleMark />
+                    <span>Sign in with Google</span>
+                  </>
+                )}
               </button>
-              <p id="google-unavailable" className="auth-note mt-2">
-                Google sign-in isn’t available in this build.
-              </p>
 
               <button
                 type="button"
