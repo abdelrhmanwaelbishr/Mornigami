@@ -11,10 +11,6 @@ import {
   doc,
   getDoc,
   setDoc,
-  collection,
-  getDocs,
-  query,
-  where,
   runTransaction,
   GoogleAuthProvider,
   signInWithPopup,
@@ -23,6 +19,7 @@ import {
   type User,
 } from '@/lib/firebase';
 import { googleAuthErrorMessage, readAuthError } from '@/lib/authErrors';
+import { isOwnerEmail } from '@/lib/adminAccess';
 import type { UserDoc, UserRole } from '@/types';
 
 interface AuthContextType {
@@ -78,6 +75,54 @@ const rememberUsername = (username: string, email: string): void => {
   } catch {
     // Private-mode or full storage: username sign-in simply falls back to email.
   }
+};
+
+const USERNAME_COLLECTION = 'usernames';
+
+const usernameDocKey = (username: string): string => username.trim().toLowerCase();
+
+/**
+ * Cloud username directory: `usernames/{handle}` maps a display handle to its
+ * email so username sign-in works on a device that has never seen the account.
+ * firestore.rules allows single-document reads but not listing, so handles
+ * cannot be scraped in bulk.
+ */
+const lookupCloudUsername = async (username: string): Promise<string | undefined> => {
+  if (!db) return undefined;
+  const key = usernameDocKey(username);
+  if (!key) return undefined;
+  try {
+    const snap = await getDoc(doc(db, USERNAME_COLLECTION, key));
+    const email = snap.exists() ? snap.data()?.email : undefined;
+    return typeof email === 'string' && email ? email : undefined;
+  } catch (err) {
+    console.warn('Username directory lookup skipped:', err);
+    return undefined;
+  }
+};
+
+/** Claims the handle in the cloud directory so every device can resolve it. */
+const rememberCloudUsername = async (uid: string, username: string, email: string): Promise<void> => {
+  if (!db) return;
+  const key = usernameDocKey(username);
+  if (!key || !email) return;
+  try {
+    await setDoc(
+      doc(db, USERNAME_COLLECTION, key),
+      { uid, email, username: username.trim(), createdAt: new Date().toISOString() },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn('Username directory write skipped:', err);
+  }
+};
+
+/** Owner accounts and the legacy 'Bishr' handle may manage other accounts. */
+const resolveUserRole = (firebaseUser: User, storedRole?: string | null): UserRole => {
+  if (storedRole === 'admin') return 'admin';
+  if (isOwnerEmail(firebaseUser.email)) return 'admin';
+  if (firebaseUser.displayName?.toLowerCase() === 'bishr') return 'admin';
+  return 'user';
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -139,13 +184,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        if (data.displayName && data.email) {
-          rememberUsername(data.displayName.toString(), data.email.toString());
+        // Claim the cloud handle for accounts created before the directory
+        // existed, and repair documents written without a name or email.
+        const profileName = data.displayName?.toString() || firebaseUser.displayName || '';
+        const profileEmail = data.email?.toString() || firebaseUser.email || '';
+        if (profileName && profileEmail) {
+          rememberUsername(profileName, profileEmail);
+          void rememberCloudUsername(firebaseUser.uid, profileName, profileEmail);
         }
 
-        // Determine Role (original logic: if username/displayName is 'Bishr', grant admin)
-        const isBishr = firebaseUser.displayName?.toLowerCase() === 'bishr';
-        const role = data.role || (isBishr ? 'admin' : 'user');
+        // Owners (and the legacy 'Bishr' handle) administer the app.
+        const role = resolveUserRole(firebaseUser, data.role);
         setUserRole(role);
 
         // Sequential Number
@@ -163,8 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else {
         // First-time user creation in Firestore
-        const isBishr = firebaseUser.displayName?.toLowerCase() === 'bishr';
-        const role: UserRole = isBishr ? 'admin' : 'user';
+        const role: UserRole = resolveUserRole(firebaseUser);
         const newNumber = await assignSequentialUserNumber(
           firebaseUser,
           firebaseUser.displayName || '',
@@ -183,6 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           createdAt: new Date().toISOString(),
         };
         await setDoc(userRef, newDoc, { merge: true });
+        await rememberCloudUsername(firebaseUser.uid, newDoc.displayName, newDoc.email);
         setUserDoc(newDoc);
       }
     } catch (err) {
@@ -239,50 +288,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // If input does not contain '@', resolve the username to its email.
     if (!trimmed.includes('@')) {
-      // Accounts created on this browser are remembered locally, so username
-      // sign-in keeps working even when the users directory is not readable.
+      // 1) A browser-local hint (accounts used on this device) resolves even offline.
       const localMatch = readUsernameDirectory()[trimmed.toLowerCase()];
-      if (localMatch) {
-        targetEmail = localMatch;
-      } else {
-        if (!db) {
-          throw new Error('Database is unavailable. Please log in using your email address.');
-        }
+      // 2) The cloud directory resolves handles claimed on any other device.
+      const cloudMatch = localMatch ? undefined : await lookupCloudUsername(trimmed);
+      const resolved = localMatch || cloudMatch;
 
-        try {
-          const usersRef = collection(db, 'users');
-          const q = query(usersRef, where('displayName', '==', trimmed));
-          const snap = await getDocs(q);
-          let resolved = snap.empty ? undefined : snap.docs[0].data()?.email;
-
-          if (!resolved) {
-            // Fallback: search case-insensitively across registered users
-            const allUsersSnap = await getDocs(usersRef);
-            const matched = allUsersSnap.docs.find((d) => {
-              const data = d.data();
-              const dName = data?.displayName?.toString().toLowerCase();
-              const uName = data?.username?.toString().toLowerCase();
-              const search = trimmed.toLowerCase();
-              return dName === search || uName === search;
-            });
-            resolved = matched?.data()?.email;
-          }
-
-          if (!resolved) {
-            throw new Error('No account found with this username. Please verify your username or use your email.');
-          }
-
-          targetEmail = resolved;
-          rememberUsername(trimmed, resolved);
-        } catch (lookupError) {
-          if (lookupError instanceof Error && lookupError.message.startsWith('No account found')) {
-            throw lookupError;
-          }
-          // Security rules can deny the directory read; say so instead of
-          // leaking "Missing or insufficient permissions" to the user.
-          throw new Error('This build cannot look up usernames. Please sign in with your email address.');
-        }
+      if (!resolved) {
+        throw new Error('No account found with this username. Please check the spelling or sign in with your email.');
       }
+
+      targetEmail = resolved;
+      rememberUsername(trimmed, resolved);
     }
 
     await signInWithEmailAndPassword(auth, targetEmail, pass);
@@ -293,21 +310,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const trimmedEmail = email.trim();
 
     if (db) {
-      // The availability check reads the whole users collection, which security
-      // rules may deny for signed-out visitors. Never let that block sign-up:
-      // Firebase Auth still rejects an email that is already registered.
+      // A handle is free when no usernames/{handle} document exists. The cloud
+      // directory is readable one document at a time, so this works for
+      // signed-out visitors without exposing the user list.
       let isTaken = false;
       try {
-        const usersRef = collection(db, 'users');
-        const snap = await getDocs(usersRef);
-        isTaken = snap.docs.some((d) => {
-          const data = d.data();
-          const dName = data?.displayName?.toString().toLowerCase();
-          const uName = data?.username?.toString().toLowerCase();
-          return dName === trimmedUsername.toLowerCase() || uName === trimmedUsername.toLowerCase();
-        });
+        const handleSnap = await getDoc(doc(db, USERNAME_COLLECTION, usernameDocKey(trimmedUsername)));
+        isTaken = handleSnap.exists();
       } catch (err) {
-        console.warn('Username availability check skipped (Firestore read denied):', err);
+        console.warn('Username availability check skipped:', err);
       }
       if (isTaken) {
         throw new Error('This username is already taken. Please choose a different one.');
@@ -318,6 +329,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (cred.user) {
       await fbUpdateProfile(cred.user, { displayName: trimmedUsername });
       rememberUsername(trimmedUsername, trimmedEmail);
+      await rememberCloudUsername(cred.user.uid, trimmedUsername, trimmedEmail);
       await fetchUserData(cred.user);
     }
   };
@@ -385,6 +397,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateData.profilePicUrl = photoURL || null;
       }
       await setDoc(userRef, updateData, { merge: true });
+    }
+    if (trimmedName) {
+      await rememberCloudUsername(user.uid, trimmedName, user.email || '');
     }
     await refreshUserData();
   };

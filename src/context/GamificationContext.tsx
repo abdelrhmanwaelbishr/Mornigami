@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
 import { loadLocalData, saveLocalData } from '@/lib/storage';
+import { publishPublicProfile } from '@/lib/publicProfile';
 import type { StoreItem, UnlockedItems } from '@/types';
 
 export const STORE_ITEMS: {
@@ -50,7 +51,7 @@ interface GamificationContextType {
 const GamificationContext = createContext<GamificationContextType | undefined>(undefined);
 
 export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, userDoc } = useAuth();
+  const { user, userDoc, userNumber } = useAuth();
   const { setAccentColor } = useTheme();
 
   const [userLevel, setUserLevel] = useState<number>(() => {
@@ -79,6 +80,32 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const [levelUpModalOpen, setLevelUpModalOpen] = useState(false);
   const [newLevelAchieved, setNewLevelAchieved] = useState<number | null>(null);
+
+  // Publish the leaderboard-safe slice of this profile. Other people must be
+  // able to see level/avatar without reading the private users/{uid} document,
+  // so the Community page reads publicProfiles instead.
+  useEffect(() => {
+    if (!user?.uid) return;
+    void publishPublicProfile(user.uid, {
+      displayName: userDoc?.displayName || user.displayName || 'Anonymous Folder',
+      userLevel,
+      userXP,
+      avatar: activeAvatar || '🌱',
+      userNumber: userNumber ?? undefined,
+      profilePicUrl: userDoc?.profilePicUrl || userDoc?.photoURL || user?.photoURL || null,
+    });
+  }, [
+    user?.uid,
+    user?.displayName,
+    user?.photoURL,
+    userDoc?.displayName,
+    userDoc?.profilePicUrl,
+    userDoc?.photoURL,
+    userLevel,
+    userXP,
+    activeAvatar,
+    userNumber,
+  ]);
 
   // Sync with Firestore userDoc when it arrives
   useEffect(() => {

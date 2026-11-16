@@ -61,20 +61,21 @@ export const Community: React.FC = () => {
 
       try {
         if (db) {
-          const snapshot = await getDocs(collection(db, 'users'));
+          // publicProfiles is the deliberately shareable projection of a
+          // profile (no email, no role); the private users collection is not
+          // readable by other accounts.
+          const snapshot = await getDocs(collection(db, 'publicProfiles'));
           snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            if (data.status !== 'deleted' && data.status !== 'banned') {
-              usersList.push({
-                uid: docSnap.id,
-                displayName: data.displayName || data.username || 'Anonymous Folder',
-                userLevel: data.userLevel || 1,
-                userXP: data.userXP || 0,
-                avatar: data.activeAvatar || '🌱',
-                userNumber: data.userNumber,
-                profilePicUrl: data.profilePicUrl || data.photoURL || null,
-              });
-            }
+            usersList.push({
+              uid: docSnap.id,
+              displayName: data.displayName || 'Anonymous Folder',
+              userLevel: data.userLevel || 1,
+              userXP: data.userXP || 0,
+              avatar: data.avatar || '🌱',
+              userNumber: data.userNumber ?? undefined,
+              profilePicUrl: data.profilePicUrl || null,
+            });
           });
         }
       } catch (err) {

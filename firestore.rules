@@ -1,0 +1,126 @@
+rules_version = '2';
+
+// Mornigami Firestore security rules (project: bishr-hub).
+//
+// The app is localStorage-first: every save is mirrored to users/{uid},
+// best-effort. These rules therefore allow a signed-in person to read and
+// write only their own profile document, publish a public leaderboard
+// projection, and keep the sequential user-number counter append-only.
+// Admin-only collections (settings/*, globalChallenges/*, the user list)
+// stay closed to regular accounts.
+//
+// OWNER_EMAILS below mirrors src/lib/adminAccess.ts. Add an email in BOTH
+// places to let that account manage other users.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function ownerEmails() {
+      return ['abdelrhmanwaelbishr017@gmail.com'];
+    }
+
+    function isOwnerAccount() {
+      return signedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() in ownerEmails();
+    }
+
+    function myUserPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && (isOwnerAccount()
+            || (exists(myUserPath()) && get(myUserPath()).data.role == 'admin'));
+    }
+
+    // Only an owner account may mint an admin. Everyone else stays a 'user'.
+    function allowedRole(data) {
+      return !('role' in data)
+        || data.role == 'user'
+        || (data.role == 'admin' && isOwnerAccount());
+    }
+
+    // Private profile + sync payload. Nobody else can read someone's email.
+    match /users/{uid} {
+      allow get: if isOwner(uid) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(uid) && allowedRole(request.resource.data);
+      allow update: if isAdmin()
+        || (isOwner(uid) && (
+             !('role' in request.resource.data)
+             || request.resource.data.role == resource.data.role
+             || (request.resource.data.role == 'admin' && isOwnerAccount())
+           ));
+      allow delete: if isAdmin();
+    }
+
+    // Public-by-design leaderboard projection: no email, no auth data.
+    match /publicProfiles/{uid} {
+      allow get: if signedIn();
+      allow list: if signedIn();
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+             'displayName', 'userLevel', 'userXP', 'avatar',
+             'userNumber', 'profilePicUrl', 'updatedAt'
+           ])
+        && request.resource.data.displayName is string
+        && request.resource.data.avatar is string
+        && request.resource.data.userLevel is int;
+      allow update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+             'displayName', 'userLevel', 'userXP', 'avatar',
+             'userNumber', 'profilePicUrl', 'updatedAt'
+           ]);
+      allow delete: if isOwner(uid) || isAdmin();
+    }
+
+    // Username -> email map so username sign-in works on any device.
+    // Single-document reads are public (you must know the handle); listing is
+    // admin-only, so the directory cannot be scraped in bulk.
+    match /usernames/{handle} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'username', 'createdAt'])
+        && request.resource.data.email is string;
+      allow update: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+    }
+
+    // Sequential user numbers: append-only, increments by exactly one.
+    match /metadata/{docId} {
+      allow get: if signedIn();
+      allow list: if isAdmin();
+      allow create: if signedIn()
+        && docId == 'userCounter'
+        && request.resource.data.lastAssignedNumber == 1;
+      allow update: if signedIn()
+        && docId == 'userCounter'
+        && 'lastAssignedNumber' in resource.data
+        && request.resource.data.lastAssignedNumber == resource.data.lastAssignedNumber + 1;
+      allow delete: if false;
+    }
+
+    // App-wide configuration and challenges: readable, admin-managed.
+    match /settings/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /globalChallenges/{challengeId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
