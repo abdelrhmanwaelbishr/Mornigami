@@ -25,6 +25,11 @@ export default {
           light: 'rgb(var(--color-secondary-light) / <alpha-value>)',
           dark: 'rgb(var(--color-secondary-dark) / <alpha-value>)',
         },
+        // The equipped pastel accent: buttons only, never ink.
+        accent: {
+          DEFAULT: 'rgb(var(--color-accent) / <alpha-value>)',
+          foreground: 'rgb(var(--color-accent-contrast) / <alpha-value>)',
+        },
         success: {
           DEFAULT: 'rgb(var(--color-success) / <alpha-value>)',
           light: 'rgb(var(--color-success-light) / <alpha-value>)',

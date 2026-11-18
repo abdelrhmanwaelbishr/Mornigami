@@ -23,7 +23,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   // Tokens are channel triplets (see index.css); a hex here silently kills every
-  // colour opacity modifier on primary.
+  // colour opacity modifier on the token it writes.
   const hexToChannels = (hex: string) => {
     const h = hex.replace('#', '');
     const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
@@ -34,13 +34,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const applyAccentColor = (color: string) => {
     const root = document.documentElement;
     if (!color) {
-      root.style.removeProperty('--color-primary');
-      root.style.removeProperty('--color-primary-contrast');
+      root.style.removeProperty('--color-accent');
+      root.style.removeProperty('--color-accent-contrast');
       return;
     }
-    root.style.setProperty('--color-primary', hexToChannels(color));
-    // Ensure high-contrast foreground text for light pastel accents
-    root.style.setProperty('--color-primary-contrast', '15 23 42');
+    const channels = hexToChannels(color);
+    const [r, g, b] = channels.split(' ').map(Number);
+    // Pastel accents need dark ink on top; a dark accent keeps white.
+    const wantsDarkInk = 0.299 * r + 0.587 * g + 0.114 * b > 150;
+    root.style.setProperty('--color-accent', channels);
+    root.style.setProperty('--color-accent-contrast', wantsDarkInk ? '15 23 42' : '255 255 255');
   };
 
   useEffect(() => {

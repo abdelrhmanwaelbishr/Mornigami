@@ -41,6 +41,11 @@
     --color-text-secondary: 100 116 139;
     --color-text-tertiary: 148 163 184;
 
+    /* Accent (the store's pastel colours) tints buttons only, so ink stays legible.
+       ThemeContext overrides these when a colour is equipped. */
+    --color-accent: 15 23 42;
+    --color-accent-contrast: 255 255 255;
+
     --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
     --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
@@ -65,6 +70,9 @@
     --color-text-primary: 226 232 240;
     --color-text-secondary: 203 213 225;
     --color-text-tertiary: 148 163 184;
+
+    --color-accent: 255 255 255;
+    --color-accent-contrast: 15 23 42;
 
     --color-success-bg: 5 46 22;
     --color-success-ink: 34 197 94;
