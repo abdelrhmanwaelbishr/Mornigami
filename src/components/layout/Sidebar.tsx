@@ -46,74 +46,82 @@ export const Sidebar: React.FC = () => {
   return (
     <aside
       className={cn(
-        'hidden md:flex flex-col justify-between border-r border-border bg-surface transition-all duration-300 z-30 h-screen sticky top-0 shrink-0',
-        minimized ? 'w-[78px]' : 'w-[250px]'
+        'hidden md:flex flex-col border-r border-border bg-surface z-30 h-screen sticky top-0 shrink-0 motion-safe:transition-[width] duration-200',
+        minimized ? 'w-[76px]' : 'w-[248px]'
       )}
     >
-      <div className="flex flex-col flex-1 overflow-y-auto">
-        {/* Brand Header */}
-        <NavLink
-          to="/"
-          className="flex items-center gap-3 p-5 border-b border-border/60 hover:opacity-90 cursor-pointer transition-all duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface rounded-xl"
-        >
-          <img
-            src={iconLogo}
-            alt="Mornigami Logo"
-            className="w-10 h-10 object-contain shrink-0 rounded-xl"
-          />
-          {!minimized && (
-            <div className="flex flex-col leading-tight">
-              <span className="font-display font-black text-xl tracking-tight text-text-primary">
-                Mornigami
-              </span>
-              <span className="text-[11px] font-medium text-text-secondary uppercase tracking-wider">
-                Shape your Morning
-              </span>
-            </div>
-          )}
-        </NavLink>
+      {/* Brand row is exactly the top bar's height, so the two hairlines meet. */}
+      <NavLink
+        to="/"
+        end
+        className={({ isActive }) =>
+          cn(
+            'flex h-16 shrink-0 items-center gap-3 border-b border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
+            minimized ? 'justify-center' : 'px-4',
+            isActive && 'bg-background'
+          )
+        }
+      >
+        <img src={iconLogo} alt="" className="w-8 h-8 shrink-0 object-contain" />
+        {!minimized && (
+          <span className="flex flex-col min-w-0 leading-tight">
+            <span className="font-display font-black text-lg tracking-tight text-text-primary">
+              Mornigami
+            </span>
+            <span className="text-[11px] font-medium text-text-secondary truncate">
+              Shape your morning
+            </span>
+          </span>
+        )}
+        <span className="sr-only">Mornigami home</span>
+      </NavLink>
 
-        {/* Navigation Links */}
-        <nav className="flex flex-col gap-1.5 p-3 flex-1">
+      {/* One hairline per row: the index of the app, not a stack of cards. */}
+      <nav aria-label="Main" className="flex-1 overflow-y-auto">
+        <ul className="divide-y divide-border">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm cursor-pointer transition-colors duration-200 ease-out active:scale-[0.98] group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface select-none',
-                    isActive
-                      ? 'bg-background text-text-primary font-semibold'
-                      : 'text-text-secondary font-medium hover:bg-background/60 hover:text-text-primary'
-                  )
-                }
-                title={minimized ? item.label : undefined}
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon
-                      className={cn(
-                        'w-5 h-5 shrink-0 transition-transform duration-200 ease-out group-hover:scale-105',
-                        isActive ? 'stroke-[2.5]' : 'stroke-2'
-                      )}
-                    />
-                    {!minimized && <span className="truncate">{item.label}</span>}
-                  </>
-                )}
-              </NavLink>
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  title={minimized ? item.label : undefined}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex min-h-11 items-center gap-3 px-4 text-sm select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
+                      minimized && 'justify-center px-0',
+                      isActive
+                        ? 'bg-background font-semibold text-text-primary'
+                        : 'font-medium text-text-secondary hover:bg-background hover:text-text-primary'
+                    )
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Icon
+                        className={cn(
+                          'w-5 h-5 shrink-0',
+                          isActive ? 'stroke-[2.5]' : 'stroke-2'
+                        )}
+                      />
+                      {!minimized && <span className="truncate">{item.label}</span>}
+                    </>
+                  )}
+                </NavLink>
+              </li>
             );
           })}
-        </nav>
-      </div>
+        </ul>
+      </nav>
 
-      {/* Collapse/Expand Toggle Button */}
-      <div className="p-3 border-t border-border/60 flex items-center justify-center">
+      <div className="border-t border-border py-1.5">
         <button
           type="button"
           onClick={() => setMinimized((prev) => !prev)}
-          className="flex items-center justify-center w-full h-9 rounded-lg border border-border text-text-secondary hover:bg-background hover:text-text-primary cursor-pointer transition-all duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface text-xs font-semibold gap-2"
+          className={cn(
+            'flex h-11 w-full items-center gap-3 text-xs font-semibold text-text-secondary hover:bg-background hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
+            minimized ? 'justify-center' : 'px-4'
+          )}
           title={minimized ? 'Expand Sidebar' : 'Collapse Sidebar'}
           aria-label={minimized ? 'Expand sidebar menu' : 'Collapse sidebar menu'}
         >
@@ -122,7 +130,7 @@ export const Sidebar: React.FC = () => {
           ) : (
             <>
               <ChevronLeft className="w-4 h-4" />
-              <span>Collapse Menu</span>
+              <span>Collapse</span>
             </>
           )}
         </button>

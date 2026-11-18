@@ -46,10 +46,10 @@ seedDemoData();
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AppProviders>
-      <MemoryRouter initialEntries={['/']}>
+      <MemoryRouter initialEntries={[key === 'home' ? '/' : `/${key}`]}>
         <Routes>
           <Route path="/" element={<MainLayout />}>
-            <Route index element={<Page />} />
+            <Route path="*" element={<Page />} />
           </Route>
         </Routes>
       </MemoryRouter>
