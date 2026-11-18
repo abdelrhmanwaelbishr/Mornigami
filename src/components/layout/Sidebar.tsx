@@ -91,7 +91,10 @@ export const Sidebar: React.FC = () => {
                       'flex min-h-11 items-center gap-3 px-4 text-sm select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
                       minimized && 'justify-center px-0',
                       isActive
-                        ? 'bg-background font-semibold text-text-primary'
+                        ? minimized
+                          // Collapsed there are no labels, so the active row needs a mark of its own.
+                          ? 'bg-background text-text-primary shadow-[inset_2px_0_0_0_rgb(var(--color-primary))]'
+                          : 'bg-background font-semibold text-text-primary'
                         : 'font-medium text-text-secondary hover:bg-background hover:text-text-primary'
                     )
                   }
