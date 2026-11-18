@@ -15,6 +15,13 @@ export const MainLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen flex bg-background text-text-primary selection:bg-primary selection:text-primary-foreground w-full max-w-full overflow-x-hidden">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:border focus:border-border focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-text-primary"
+      >
+        Skip to content
+      </a>
+
       {/* Navigation Sidebar (Desktop) */}
       <Sidebar />
 
@@ -27,7 +34,11 @@ export const MainLayout: React.FC = () => {
         />
 
         {/* Dynamic Routed Content */}
-        <main className="flex-1 p-3 sm:p-6 lg:p-8 w-full max-w-full overflow-y-auto overflow-x-hidden pb-24 md:pb-8">
+        <main
+          id="main"
+          tabIndex={-1}
+          className="flex-1 p-3 sm:p-6 lg:p-8 w-full max-w-full overflow-y-auto overflow-x-hidden pb-24 md:pb-8 focus:outline-none"
+        >
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>
