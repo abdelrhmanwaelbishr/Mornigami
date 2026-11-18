@@ -1,6 +1,20 @@
 # Mornigami — Project History
 
-One file, chronological, for every agent who touches this repo. `HANDOFF.md` is the current-state brief; this is the record of how it got there. Append a dated section per session; never rewrite history, correct it with a note.
+One file, chronological, for every agent who touches this repo. `HANDOFF.md` is the current-state brief; this is the record of how it got there.
+
+## How to update this file — read before you write
+
+If the owner says **"update the history"**, **"update progress"**, **"update this file"**, or asks you to record what happened, that means: **append a full dated section carrying the whole session's context — not one line of status.** This file exists so that nobody has to replay a chat transcript, so a section must contain what a transcript would have handed them:
+
+- **The goal**, as the owner stated it, in their words where the wording mattered.
+- **Decisions and the reason that decided them** — the alternative that lost and why. A decision without its "because" is unusable a week later.
+- **What shipped** — commit hashes, plus which files and areas changed.
+- **What was verified, and how** — viewport, theme, DOM read, build, test, or the live site; and say plainly what was **not** checked.
+- **Discoveries and dead ends** — the bug that changed the plan, the approach that failed and the reason it failed.
+- **What remains**, including anything deliberately deferred or skipped, and any question still open with the owner.
+- **Risks** a future agent must know before touching the area.
+
+Then: `git log` the new commits, extend the commit ledger in §4, and keep `HANDOFF.md` in sync (that one stays short and tagged FIXED/PARTIAL/OPEN). Never rewrite or delete an earlier section — correct it with a dated note.
 
 - **Repo:** `D:/Programming/Mornigami Files/Mornigami` · branch `main` · `origin` = github.com/abdelrhmanwaelbishr/Mornigami
 - **Live:** https://mornigami.vercel.app
@@ -72,6 +86,8 @@ Wrote `PRODUCT.md` (positioning, four product principles, exact XP table, four o
 
 Another agent had written a `HANDOFF.md` describing the project before the rebuild. Every claim was checked against the code; the doc was rewritten with a commit table, FIXED/PARTIAL/OPEN tags and file:line evidence, and its factual errors corrected (no code altered — wrong; "cream paper" — not the shipped world; blue buttons — that is the intended accent, not a violation). Findings the code confirmed as still open are listed in `HANDOFF.md §2`; the top one is that `gainXP` declares a `reason` it never reads, so the daily loop still celebrates nothing.
 
+The owner then asked for "one chat that has all the history", which became **this file** — the long memory, with its own update protocol at the top so a future agent told to "update progress" writes a full section rather than a status line.
+
 ---
 
 ## 4. Commit ledger
@@ -117,4 +133,4 @@ Another agent had written a `HANDOFF.md` describing the project before the rebui
 
 ## 7. Maintenance
 
-Append a new `## N. Session <date> — <theme>` section after each working session: goal, decisions with rationale, what shipped (commit hashes), what was verified and how, and what remains. Keep `HANDOFF.md` current as the short brief; keep this file as the long memory.
+See **How to update this file** at the top — that section is the rule, this file is the memory.
