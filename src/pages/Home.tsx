@@ -1,213 +1,323 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import { useBounties } from '@/context/BountiesContext';
+import { useFinance } from '@/context/FinanceContext';
+import { useHabits } from '@/context/HabitsContext';
+import { usePomodoro } from '@/context/PomodoroContext';
+import { useTasks } from '@/context/TasksContext';
 import { Button } from '@/components/ui/Button';
-import { Progress } from '@/components/ui/Progress';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { ArrowRight, Flame, Clock, CheckCircle2, CalendarDays, ListTodo, Timer, Wallet, Play, ShoppingBag, Sun } from 'lucide-react';
+import { ArrowRight, Check, Clock, Flame } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { Task, TaskPriority } from '@/types';
+
+const PRIORITY_RANK: Record<TaskPriority, number> = { high: 0, medium: 1, low: 2 };
+
+/** Local calendar day, matching how habits and tasks store their dates. */
+const dayStamp = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const greetingFor = (hour: number) => {
+  if (hour < 5) return 'Still up';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+};
+
+const dueLabel = (task: Task, today: string) => {
+  if (!task.dueDate) return null;
+  if (task.dueDate === today) return 'Today';
+  if (task.dueDate < today) return 'Overdue';
+  const [, month, day] = task.dueDate.split('-');
+  return `${Number(day)} ${new Date(2000, Number(month) - 1, 1).toLocaleDateString('en-GB', { month: 'short' })}`;
+};
+
+/** Crease marks: one tick per unit, filled left to right. */
+const Creases: React.FC<{ done: number; total: number }> = ({ done, total }) => (
+  <span className="flex gap-1" aria-hidden="true">
+    {Array.from({ length: Math.min(total, 8) }, (_, i) => (
+      <span
+        key={i}
+        className={cn('h-1.5 w-5 rounded-[1px] transition-colors duration-200', i < done ? 'bg-primary' : 'bg-border')}
+      />
+    ))}
+  </span>
+);
 
 export const Home: React.FC = () => {
+  const { userDoc } = useAuth();
+  const { habits, isHabitCompletedToday } = useHabits();
+  const { tasks, toggleTask } = useTasks();
+  const { settings, stats } = usePomodoro();
+  const { financeData, cycleDetails } = useFinance();
   const { bounties, bountyStats, countdown, claimBounty } = useBounties();
 
-  const portals = [
+  const now = new Date();
+  const today = dayStamp(now);
+  const weekday = now.getDay();
+
+  const scheduled = habits.filter((habit) => habit.targetDays.includes(weekday));
+  const foldedToday = scheduled.filter((habit) => isHabitCompletedToday(habit)).length;
+  const bestStreak = habits.reduce((best, habit) => Math.max(best, habit.currentStreak), 0);
+
+  const openTasks = tasks.filter((task) => !task.completed);
+  const dueToday = openTasks.filter((task) => task.dueDate === today).length;
+  const nextUp = [...openTasks]
+    .sort((a, b) => {
+      const dueA = a.dueDate || '9999-99-99';
+      const dueB = b.dueDate || '9999-99-99';
+      if (dueA !== dueB) return dueA < dueB ? -1 : 1;
+      return PRIORITY_RANK[a.priority || 'medium'] - PRIORITY_RANK[b.priority || 'medium'];
+    })
+    .slice(0, 4);
+
+  const focusedMinutes = stats.sessionsToday * settings.workDuration;
+  const unclaimedXp = bounties.reduce((sum, bounty) => (bounty.completed ? sum : sum + bounty.xp), 0);
+
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return {
+      stamp: dayStamp(date),
+      letter: date.toLocaleDateString('en-GB', { weekday: 'narrow' }),
+      name: date.toLocaleDateString('en-GB', { weekday: 'long' }),
+      count: habits.filter((habit) => habit.completedDates.includes(dayStamp(date))).length,
+      isToday: dayStamp(date) === today,
+    };
+  });
+  const weekPeak = Math.max(1, ...week.map((day) => day.count));
+
+  const firstName = (userDoc?.displayName || '').trim().split(' ')[0];
+
+  const measures = [
     {
-      to: '/habits',
-      title: 'Habit Tracker',
-      desc: 'Crease your routines, track consistency, and fold daily micro-habits into structure.',
-      icon: CalendarDays,
-      badge: 'Build Habits',
+      value: `${foldedToday}/${scheduled.length}`,
+      label: 'habits folded',
+      note: bestStreak > 0 ? `${bestStreak}-day best streak` : 'No streak yet',
     },
     {
-      to: '/todo',
-      title: 'To-Do List',
-      desc: 'Break your morning down into task creases. Track and prioritize essential checklists.',
-      icon: ListTodo,
-      badge: 'Execute Tasks',
+      value: String(openTasks.length),
+      label: openTasks.length === 1 ? 'task left' : 'tasks left',
+      note: dueToday > 0 ? `${dueToday} due today` : 'Nothing due today',
     },
     {
-      to: '/pomodoro',
-      title: 'Pomogami',
-      desc: 'Shape your focus blocks, creasing distractions away. Run focus sessions with ambient sounds.',
-      icon: Timer,
-      badge: 'Focus Blocks',
+      value: `${focusedMinutes}m`,
+      label: 'focused today',
+      note: `${stats.sessionsToday} ${stats.sessionsToday === 1 ? 'session' : 'sessions'} of ${settings.workDuration} min`,
     },
     {
-      to: '/finance',
-      title: 'Finance Hub',
-      desc: 'Track income, set a daily budget, manage your savings vault, and maintain disciplined spending.',
-      icon: Wallet,
-      badge: 'Manage Budget',
-    },
-    {
-      to: '/playlist',
-      title: 'Playlist Tracker',
-      desc: 'Import course playlists, watch lessons, track video duration milestones, and level up.',
-      icon: Play,
-      badge: 'Watch & Learn',
-    },
-    {
-      to: '/store',
-      title: 'Rewards Store',
-      desc: 'Exchange your hard-earned XP for beautiful pastel themes, origami avatars, and animated borders.',
-      icon: ShoppingBag,
-      badge: 'Unlock Rewards',
+      value: `${financeData.currency} ${Math.round(financeData.dailyBudget).toLocaleString()}`,
+      label: 'daily budget',
+      note: `${cycleDetails.remainingDays} days left in cycle`,
     },
   ];
 
   return (
-    <div className="space-y-7">
-      {/* App Header */}
-      <div>
-        <h1 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-primary">
-          Mornigami Dashboard
+    <div className="mx-auto w-full max-w-6xl space-y-6">
+      <header className="space-y-2">
+        <h1 className="text-balance font-display text-3xl font-black tracking-tight text-primary sm:text-4xl">
+          {greetingFor(now.getHours())}
+          {firstName ? `, ${firstName}` : ''}.
         </h1>
-        <p className="text-sm font-medium text-text-secondary mt-1">
-          Shape your morning and fold your habits into structure.
+        <p className="text-sm text-text-secondary">
+          {now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} ·{' '}
+          {foldedToday} of {scheduled.length} habits folded, {openTasks.length}{' '}
+          {openTasks.length === 1 ? 'task' : 'tasks'} left.
         </p>
-      </div>
+      </header>
 
-      {/* Welcome Hero Card */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-r from-primary/5 via-secondary/10 to-primary/5 p-6 sm:p-8 flex items-center justify-between shadow-sm">
-        <div className="max-w-xl space-y-2">
-          <h2 className="font-display text-xl sm:text-2xl font-black text-text-primary">
-            Good morning! Ready to shape your day?
-          </h2>
-          <p className="text-xs sm:text-sm text-text-secondary leading-relaxed font-normal">
-            Every habit folded, task completed, and timer run brings you closer to your goals.
-            Unfold your potential crease by crease.
-          </p>
-        </div>
-        <div className="shrink-0 ml-4 rounded-2xl border border-warning/30 bg-warning/10 p-4 text-warning">
-          <Sun className="h-9 w-9 sm:h-12 sm:w-12" aria-hidden="true" />
-        </div>
-      </div>
-
-      {/* Daily Bounties Panel */}
-      <section className="space-y-4">
-        <div className="rounded-3xl border-2 border-warning/40 bg-gradient-to-br from-warning/10 via-danger/5 to-surface p-5 sm:p-6 shadow-sm">
-          {/* Panel Header */}
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-warning/20 flex items-center justify-center text-xl shadow-xs">
-                <Flame className="w-5 h-5 text-warning fill-warning" />
-              </div>
-              <div>
-                <h3 className="font-display text-lg font-bold text-text-primary">
-                  Daily Bounties
-                </h3>
-                <p className="text-xs text-text-secondary">
-                  Complete today's challenges for massive XP bonuses!
-                </p>
-              </div>
-            </div>
-
-            {/* Live Midnight Countdown */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-surface text-xs font-bold text-danger shadow-xs">
-              <Clock className="w-3.5 h-3.5" />
-              <span>Expires in:</span>
-              <span className="font-mono tracking-wider">{countdown || '00:00:00'}</span>
-            </div>
-          </div>
-
-          {/* Bounties List */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(bounties || []).map((bounty) => {
-              let currentCount = 0;
-              if (bounty.type === 'pomodoro') currentCount = bountyStats?.pomodorosCompletedToday || 0;
-              if (bounty.type === 'habit') currentCount = bountyStats?.habitsCompletedToday || 0;
-              if (bounty.type === 'task') currentCount = bountyStats?.tasksCompletedToday || 0;
-
-              const target = bounty.targetCount || 1;
-              const progress = Math.min(100, Math.round((currentCount / target) * 100));
-              const canClaim = !bounty.completed && currentCount >= target;
-
-              return (
-                <Card
-                  key={bounty.id}
-                  className="bg-surface/90 border-border/80 shadow-xs flex flex-col justify-between"
-                >
-                  <CardHeader className="p-4 pb-2 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-warning">+{bounty.xp} XP</span>
-                      {bounty.completed ? (
-                        <span className="flex items-center gap-1 text-[11px] font-bold text-success">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Done
-                        </span>
-                      ) : (
-                        <span className="text-[11px] font-bold text-text-tertiary">
-                          {currentCount} / {target}
-                        </span>
-                      )}
-                    </div>
-                    <CardTitle className="text-sm font-bold text-text-primary">
-                      {bounty.title}
-                    </CardTitle>
-                    <p className="text-[11px] text-text-secondary line-clamp-2">
-                      {bounty.desc}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-2 space-y-3">
-                    <Progress value={progress} className="h-1.5" />
-                    {canClaim ? (
-                      <Button
-                        size="sm"
-                        onClick={() => claimBounty(bounty.id)}
-                        className="w-full h-8 text-xs font-bold bg-warning hover:bg-warning/90 text-slate-900"
-                      >
-                        Claim +{bounty.xp} XP! 🎁
-                      </Button>
-                    ) : bounty.completed ? (
-                      <Button size="sm" variant="secondary" disabled className="w-full h-8 text-xs">
-                        Completed
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="outline" disabled className="w-full h-8 text-xs">
-                        In Progress ({currentCount}/{bounty.targetCount})
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Portals Grid */}
-      <section className="space-y-4">
-        <h3 className="font-display text-xl font-bold text-text-primary">
-          Core Workspaces
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {portals.map((portal) => (
-            <Link
-              key={portal.to}
-              to={portal.to}
-              className="group block p-6 rounded-3xl border border-border bg-surface hover:border-primary/40 hover:shadow-md transition-all duration-300"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <span className="p-2.5 rounded-2xl bg-background border border-border text-primary transition-transform duration-200 group-hover:scale-105">
-                  <portal.icon className="h-6 w-6" aria-hidden="true" />
-                </span>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary group-hover:text-primary transition-colors">
-                  {portal.badge}
-                </span>
-              </div>
-              <h4 className="font-display text-lg font-bold text-text-primary group-hover:text-primary transition-colors">
-                {portal.title}
-              </h4>
-              <p className="text-xs text-text-secondary leading-relaxed mt-2 min-h-[36px]">
-                {portal.desc}
+      {/* Today and Bounties share the fold; the week strip closes the page. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+        {/* Today: four measures, hairline seams instead of separate cards. */}
+        <section
+          aria-labelledby="today-heading"
+          className="overflow-hidden rounded-3xl border border-border bg-surface lg:col-start-1 lg:row-start-1"
+        >
+        <h2 id="today-heading" className="sr-only">
+          Today
+        </h2>
+        <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-4">
+          {measures.map((measure) => (
+            <div key={measure.label} className="bg-surface p-4 sm:p-5">
+              <p className="font-display text-2xl font-black leading-none tracking-tight text-text-primary tabular-nums sm:text-3xl">
+                {measure.value}
               </p>
-              <div className="mt-4 pt-3 border-t border-border/60 flex items-center gap-1.5 text-xs font-bold text-primary">
-                <span>Enter workspace</span>
-                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-              </div>
-            </Link>
+              <p className="mt-2 text-xs font-medium text-text-secondary">{measure.label}</p>
+              <p className="mt-1 text-xs text-text-secondary">{measure.note}</p>
+            </div>
           ))}
         </div>
+
+        <div className="border-t border-border p-4 sm:p-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="font-display text-base font-bold text-text-primary">Next up</h3>
+            <Link
+              to="/todo"
+              className="inline-flex items-center gap-1 rounded text-xs font-semibold text-text-secondary transition-colors duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              To-do list
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
+          </div>
+
+          {nextUp.length === 0 ? (
+            <p className="mt-3 text-sm text-text-secondary">
+              Nothing left on the list. {tasks.length === 0 ? 'Add your first task' : 'Everything is done'} —{' '}
+              <Link to="/todo" className="font-semibold text-primary underline-offset-4 hover:underline">
+                open the to-do list
+              </Link>
+              .
+            </p>
+          ) : (
+            <ul className="mt-2 divide-y divide-border">
+              {nextUp.map((task) => {
+                const due = dueLabel(task, today);
+                return (
+                  <li key={task.id} className="flex items-center gap-3 py-2 first:pt-1 last:pb-1">
+                    <button
+                      type="button"
+                      onClick={() => toggleTask(task.id)}
+                      aria-label={`Mark "${task.title}" done`}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[6px] border border-border bg-transparent text-transparent transition-colors duration-200 hover:border-success hover:bg-success-bg hover:text-success focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                    >
+                      <Check className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary">{task.title}</span>
+                    {due && (
+                      <span
+                        className={cn(
+                          'shrink-0 text-xs font-semibold',
+                          due === 'Overdue' ? 'text-red-600 dark:text-danger' : due === 'Today' ? 'text-amber-700 dark:text-warning' : 'text-text-secondary'
+                        )}
+                      >
+                        {due}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </section>
+
+      {/* Bounties: the day's offers, as a ledger. */}
+      <section
+        aria-labelledby="bounties-heading"
+        className="overflow-hidden rounded-3xl border border-border bg-surface lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:self-start"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4 sm:px-5">
+          <div className="flex items-center gap-2">
+            <Flame className="h-4 w-4 text-amber-600 dark:text-warning" aria-hidden="true" />
+            <h2 id="bounties-heading" className="font-display text-base font-bold text-text-primary">
+              Bounties
+            </h2>
+            <span className="text-xs text-text-secondary">· resets at midnight</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary tabular-nums">
+            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="sr-only">Time left today:</span>
+            {countdown || '00:00:00'}
+          </div>
+        </div>
+
+        <ul className="divide-y divide-border">
+          {bounties.map((bounty) => {
+            const current =
+              bounty.type === 'pomodoro'
+                ? bountyStats?.pomodorosCompletedToday || 0
+                : bounty.type === 'habit'
+                  ? bountyStats?.habitsCompletedToday || 0
+                  : bountyStats?.tasksCompletedToday || 0;
+            const target = bounty.targetCount || 1;
+            const canClaim = !bounty.completed && current >= target;
+
+            return (
+              <li key={bounty.id} className="px-4 py-3.5 sm:px-5">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="min-w-0 flex-1 text-sm font-semibold text-text-primary">{bounty.title}</p>
+                  <span className="shrink-0 text-xs font-bold text-amber-700 tabular-nums dark:text-warning">+{bounty.xp} XP</span>
+                </div>
+                <p className="mt-0.5 text-xs text-text-secondary">{bounty.desc}</p>
+
+                <div className="mt-2.5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <Creases done={Math.min(current, target)} total={target} />
+                    <span className="text-xs font-semibold text-text-secondary tabular-nums">
+                      {current}/{target}
+                    </span>
+                  </div>
+                  {canClaim ? (
+                    <Button
+                      size="sm"
+                      onClick={() => claimBounty(bounty.id)}
+                      className="h-10 bg-warning px-4 text-xs font-bold text-slate-900 hover:bg-warning-light sm:h-9"
+                    >
+                      Claim
+                    </Button>
+                  ) : bounty.completed ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 dark:text-success">
+                      <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                      Claimed
+                    </span>
+                  ) : (
+                    <span className="text-xs text-text-secondary">{target - current} to go</span>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        {bounties.length > 0 && (
+          <div className="mt-auto flex items-center justify-between gap-3 border-t border-border p-4 sm:px-5">
+            <span className="text-xs text-text-secondary">XP still unclaimed today</span>
+            <span className="text-xs font-bold text-amber-700 tabular-nums dark:text-warning">{unclaimedXp} XP</span>
+          </div>
+        )}
+      </section>
+
+        {/* The week, as creases. */}
+        <section
+          aria-labelledby="week-heading"
+          className="rounded-3xl border border-border bg-surface p-4 sm:p-5 lg:col-start-1 lg:row-start-2"
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="week-heading" className="font-display text-base font-bold text-text-primary">
+              Last seven days
+            </h2>
+            <p className="text-xs text-text-secondary">
+              {bestStreak > 0 ? `Best streak ${bestStreak} ${bestStreak === 1 ? 'day' : 'days'}` : 'No streak yet'}
+            </p>
+          </div>
+
+          <ol className="mt-4 grid grid-cols-7 gap-2">
+            {week.map((day) => (
+              <li key={day.stamp} aria-current={day.isToday ? 'date' : undefined} className="flex flex-col items-center gap-1.5">
+                <span className="text-xs font-semibold text-text-secondary tabular-nums">{day.count}</span>
+                <div className="flex h-16 w-full items-end justify-center" aria-hidden="true">
+                  <div
+                    className={cn(
+                      'w-6 rounded-[2px] transition-colors duration-200 sm:w-8',
+                      day.count === 0 ? 'bg-border' : day.isToday ? 'bg-primary' : 'bg-text-tertiary'
+                    )}
+                    style={{ height: `${day.count === 0 ? 2 : Math.max(8, Math.round((day.count / weekPeak) * 64))}px` }}
+                  />
+                </div>
+                <span
+                  className={cn('text-xs font-semibold', day.isToday ? 'text-primary' : 'text-text-secondary')}
+                  aria-hidden="true"
+                >
+                  {day.letter}
+                </span>
+                <span className="sr-only">
+                  {day.name}: {day.count} {day.count === 1 ? 'habit' : 'habits'} folded
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      </div>
     </div>
   );
 };
-
