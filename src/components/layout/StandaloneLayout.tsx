@@ -44,7 +44,7 @@ export const StandaloneLayout: React.FC = () => {
         </ErrorBoundary>
       </main>
 
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" richColors offset={{ top: 76, right: 16 }} />
     </div>
   );
 };

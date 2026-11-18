@@ -60,7 +60,8 @@ export const MainLayout: React.FC = () => {
       <LevelUpModal />
 
       {/* Toast Notification Container */}
-      <Toaster position="top-right" richColors />
+      {/* Receipts sit below the 64px bar instead of on top of it. */}
+      <Toaster position="top-right" richColors offset={{ top: 76, right: 16 }} />
     </div>
   );
 };

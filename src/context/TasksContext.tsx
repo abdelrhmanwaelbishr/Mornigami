@@ -64,10 +64,16 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const toggleTask = (id: string) => {
     let becameCompleted = false;
+    const now = new Date().toISOString();
     const updated = tasks.map((t) => {
       if (t.id === id) {
         becameCompleted = !t.completed;
-        return { ...t, completed: !t.completed };
+        return {
+          ...t,
+          completed: !t.completed,
+          // Bounties ask "how many tasks today", which needs a timestamp, not a flag.
+          completedAt: becameCompleted ? now : undefined,
+        };
       }
       return t;
     });
@@ -75,7 +81,7 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     saveTasks(updated);
 
     if (becameCompleted) {
-      gainXP(30, 'Task Completed');
+      gainXP(30, 'Task completed');
     }
   };
 

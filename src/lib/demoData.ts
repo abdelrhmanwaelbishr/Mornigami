@@ -33,6 +33,7 @@ const DEMO_MARKER_KEY = 'demoWorkspaceVersion';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+// Positive offsets are days ago, negative ones days ahead.
 const dayStr = (offsetDays: number): string => {
   const d = new Date();
   d.setDate(d.getDate() - offsetDays);
@@ -143,7 +144,7 @@ const demoTasks = (): Task[] => [
     category: 'Learning',
     priority: 'medium',
     completed: false,
-    dueDate: dayStr(-1),
+    dueDate: dayStr(1),
     createdAt: nowISO(),
   },
   {
@@ -152,7 +153,7 @@ const demoTasks = (): Task[] => [
     category: 'Errands',
     priority: 'low',
     completed: false,
-    dueDate: dayStr(-2),
+    dueDate: dayStr(2),
     createdAt: nowISO(),
   },
   {
@@ -161,7 +162,7 @@ const demoTasks = (): Task[] => [
     category: 'Personal',
     priority: 'low',
     completed: false,
-    dueDate: dayStr(-3),
+    dueDate: dayStr(3),
     createdAt: nowISO(),
   },
   {
@@ -170,6 +171,7 @@ const demoTasks = (): Task[] => [
     category: 'Health',
     priority: 'low',
     completed: true,
+    completedAt: nowISO(),
     dueDate: todayStr(),
     createdAt: nowISO(),
   },
@@ -179,7 +181,9 @@ const demoTasks = (): Task[] => [
     category: 'Personal',
     priority: 'medium',
     completed: true,
-    dueDate: dayStr(1),
+    // Finished yesterday, so today's task bounty still has one to go.
+    completedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    dueDate: dayStr(-1),
     createdAt: nowISO(),
   },
 ];

@@ -16,6 +16,26 @@ interface HabitsContextType {
 
 const HabitsContext = createContext<HabitsContextType | undefined>(undefined);
 
+const dateKey = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * Consecutive days ending today, or ending yesterday while today is still open.
+ * Derived from the dates themselves so a missed day actually breaks the streak.
+ */
+const computeStreak = (completedDates: string[]): number => {
+  const done = new Set(completedDates);
+  const cursor = new Date();
+  if (!done.has(dateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+
+  let streak = 0;
+  while (done.has(dateKey(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+};
+
 export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, userDoc } = useAuth();
   const { gainXP } = useGamification();
@@ -23,24 +43,30 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [habits, setHabits] = useState<Habit[]>(() => {
     const raw = loadLocalData<Habit[]>('habits', []);
     if (!Array.isArray(raw)) return [];
-    return raw.map((h) => ({
-      ...h,
-      completedDates: Array.isArray(h?.completedDates) ? h.completedDates : [],
-      targetDays: Array.isArray(h?.targetDays) ? h.targetDays : [0, 1, 2, 3, 4, 5, 6],
-      currentStreak: h?.currentStreak || 0,
-      timeSpentToday: h?.timeSpentToday || 0,
-    }));
+    return raw.map((h) => {
+      const completedDates = Array.isArray(h?.completedDates) ? h.completedDates : [];
+      return {
+        ...h,
+        completedDates,
+        targetDays: Array.isArray(h?.targetDays) ? h.targetDays : [0, 1, 2, 3, 4, 5, 6],
+        currentStreak: computeStreak(completedDates),
+        timeSpentToday: h?.timeSpentToday || 0,
+      };
+    });
   });
 
   useEffect(() => {
     if (userDoc?.habits && Array.isArray(userDoc.habits)) {
-      const safeHabits = userDoc.habits.map((h) => ({
-        ...h,
-        completedDates: Array.isArray(h?.completedDates) ? h.completedDates : [],
-        targetDays: Array.isArray(h?.targetDays) ? h.targetDays : [0, 1, 2, 3, 4, 5, 6],
-        currentStreak: h?.currentStreak || 0,
-        timeSpentToday: h?.timeSpentToday || 0,
-      }));
+      const safeHabits = userDoc.habits.map((h) => {
+        const completedDates = Array.isArray(h?.completedDates) ? h.completedDates : [];
+        return {
+          ...h,
+          completedDates,
+          targetDays: Array.isArray(h?.targetDays) ? h.targetDays : [0, 1, 2, 3, 4, 5, 6],
+          currentStreak: computeStreak(completedDates),
+          timeSpentToday: h?.timeSpentToday || 0,
+        };
+      });
       setHabits(safeHabits);
       localStorage.setItem('habits', JSON.stringify(safeHabits));
     }
@@ -97,22 +123,19 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const completedDates = Array.isArray(habit.completedDates) ? habit.completedDates : [];
       const isCompleted = completedDates.includes(today);
       let newCompletedDates = [...completedDates];
-      let streak = habit.currentStreak || 0;
 
       if (isCompleted) {
         newCompletedDates = newCompletedDates.filter((d) => d !== today);
-        streak = Math.max(0, streak - 1);
         completedNow = false;
       } else {
         newCompletedDates.push(today);
-        streak += 1;
         completedNow = true;
       }
 
       return {
         ...habit,
         completedDates: newCompletedDates,
-        currentStreak: streak,
+        currentStreak: computeStreak(newCompletedDates),
         lastCompletedDate: completedNow ? today : habit.lastCompletedDate,
       };
     });

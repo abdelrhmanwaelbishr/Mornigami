@@ -3,6 +3,7 @@ import { useHabits } from '@/context/HabitsContext';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
 import { SheetHeading } from '@/components/ui/SheetHeading';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { TaskTick } from '@/components/ui/TaskTick';
 import {
   Dialog,
@@ -112,21 +113,16 @@ export const Habits: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-black text-text-primary">
-            Habit Tracker
-          </h1>
-          <p className="text-sm font-medium text-text-secondary mt-1">
-            Build consistency, check off daily habits, and earn +50 XP per fold.
-          </p>
-        </div>
-
-        <Button onClick={openCreateModal} className="h-10 px-4 font-bold gap-2 self-start sm:self-auto">
-          <Plus className="w-4 h-4" />
-          <span>New Habit Fold</span>
-        </Button>
-      </div>
+      <PageHeader
+        title="Habit Tracker"
+        note="Build consistency, check off daily habits, and earn +50 XP per fold."
+        actions={
+          <Button onClick={openCreateModal} className="h-11 gap-2 px-4 font-bold">
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            <span>New Habit Fold</span>
+          </Button>
+        }
+      />
 
       {/* Category Pills Filter */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
+import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
 import { loadLocalData, saveLocalData } from '@/lib/storage';
@@ -164,7 +165,7 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
   };
 
-  const gainXP = (amount: number) => {
+  const gainXP = (amount: number, reason?: string) => {
     let currentXP = userXP + amount;
     let currentLvl = userLevel;
     let leveledUp = false;
@@ -184,6 +185,12 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (user) {
       saveLocalData('userXP', currentXP, user.uid);
       saveLocalData('userLevel', currentLvl, user.uid);
+    }
+
+    // The receipt: every award says what it was for, so the economy is legible
+    // from the page the action happened on. Level-ups keep their own celebration.
+    if (reason) {
+      toast(`+${amount} XP · ${reason}`, { duration: 2400 });
     }
 
     if (leveledUp) {

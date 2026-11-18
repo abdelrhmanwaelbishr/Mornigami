@@ -45,13 +45,17 @@ const DEFAULT_BOUNTIES: Bounty[] = [
 
 const BountiesContext = createContext<BountiesContextType | undefined>(undefined);
 
+/** Local calendar day. Habits use the same rule; UTC would turn the page over at 22:00 here. */
+const localDateKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 export const BountiesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { gainXP } = useGamification();
   const { stats: pomodoroStats } = usePomodoro();
   const { habits } = useHabits();
   const { tasks } = useTasks();
 
-  const getTodayStr = () => new Date().toISOString().substring(0, 10);
+  const getTodayStr = () => localDateKey(new Date());
 
   const [bountyStats, setBountyStats] = useState<BountyStats>(() => {
     return loadLocalData<BountyStats>('bountyStats', {
@@ -110,7 +114,11 @@ export const BountiesProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const completedHabitsToday = (habits || []).filter(
       (h) => Array.isArray(h?.completedDates) && h.completedDates.includes(today)
     ).length;
-    const completedTasksToday = (tasks || []).filter((t) => t?.completed).length;
+    // Only tasks ticked today count: a task finished last week is not today's work.
+    const completedTasksToday = (tasks || []).filter(
+      (t) =>
+        t?.completed && t.completedAt && localDateKey(new Date(t.completedAt)) === today
+    ).length;
     const pomodoros = pomodoroStats?.sessionsToday || 0;
 
     setBountyStats((prev) => {

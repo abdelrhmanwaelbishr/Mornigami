@@ -52,6 +52,8 @@ export interface Task {
   category: string;
   priority?: TaskPriority;
   completed: boolean;
+  /** Set when the task is ticked, cleared when it is un-ticked. */
+  completedAt?: string;
   dueDate: string;
   createdAt: string;
 }
