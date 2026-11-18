@@ -20,7 +20,7 @@ Then: `git log` the new commits, extend the commit ledger in §4, and keep `HAND
 - **Live:** https://mornigami.vercel.app
 - **Stack:** React 18.3 · TypeScript 5.5 · Vite 5.4 · Tailwind 3.4 · Firebase 10.8 (Auth + Firestore, project `bishr-hub`)
 - **Docs:** `PRODUCT.md` (what it is) · `DESIGN.md` (the visual contract) · `UI-ROADMAP.md` (phases 0–6) · `HANDOFF.md` (open findings)
-- **State as of writing:** clean tree at `4337d32`; `PROJECT-HISTORY.md` and `HANDOFF.md` untracked.
+- **State as of writing:** `origin/main` at `4337d32`; local `main` at `7cc2c8f` (+3 commits ahead, unpushed); `HANDOFF.md` and `PROJECT-HISTORY.md` tracked.
 
 ---
 
@@ -90,7 +90,54 @@ The owner then asked for "one chat that has all the history", which became **thi
 
 ---
 
-## 4. Commit ledger
+## 4. Session 2026-11-18 · late afternoon — live dynamic audit, silent loop root cause, and handoff
+
+**Goal that arrived:** "tell me a good way to make the website more user-attractive, it attracts the user", followed by: "i want u to actually sign in to the website with these credentials ... and test what u need", asking for prioritized bullet points, `/handoff`, and saving it to the repo.
+
+**Live dynamic verification.** Drove the running app on Vite (`127.0.0.1:5173`) using `ego-browser` (Citro Labs Ego Lite automation via CDP) as authenticated user Bishr (L5, 405 XP). Tested real interactions end-to-end:
+- **Sign-in & Empty Workspace:** Signed in via `/login`. The real account had 1 habit (`dddd`), 0 tasks, 0 playlists, EGP 0 balance, and an expired finance cycle reading "1 days remaining".
+- **Task creation & ticking:** Created "Attractiveness test task" in `/todo`. Ticked it: XP increased 405 → 435 (+30 XP) and persisted across reloads, but **zero feedback** appeared (no toast, no flash, no aria-live announcement).
+- **Habit folding:** Folded habit `dddd` in `/habits`. XP increased 435 → 485 (+50 XP) and persisted, but zero feedback appeared at 120ms or 520ms.
+- **Finance cycle:** Claimed daily budget bonus (+50 XP) with toast confirmation.
+- **Store purchase:** Bought "Dawn Sky" accent (-300 XP, 485 → 185 XP). Successfully fired toast, celebration confetti, switched button accent to sky blue, and marked item "Equipped".
+- **Level-up celebration:** Verified milestone celebration by parking XP at 2,470 / 2,500 and triggering level-up to L6: dialog modal opened with celebratory confetti canvas and "Keep Going!" button.
+- **Pomodoro:** Ran countdown timer, paused, verified clock state updates.
+- **Viewport & themes:** Audited Home and Todo at 390px mobile and 1440px desktop across both light and dark modes.
+- **Clean up:** Deleted created test tasks and restored habit completion / XP state before exiting. Captured 13 verification screenshots in `.impeccable/shots/` (`live-02-after-signin.png`, `live-todo.png`, `live-finance.png`, `live-store.png`, `live-pomodoro.png`, `live-habits.png`, `live-flow-02-task-created.png`, `live-flow-06-store-bought.png`, `live-flow-09-home-dark.png`, `live-flow-10-home-390.png`, `live-flow-11-todo-390.png`, `live-flow-12-levelup.png`, `live-fold-feedback.png`).
+
+**Discoveries & Root Causes:**
+1. **The Silent Daily Loop:** Callers pass reasons to `gainXP(amount, reason)` (`TasksContext.tsx:78`, `HabitsContext.tsx:123`), but `GamificationContext.tsx:167` completely ignores the second argument. Ticking tasks and folding habits work silently, while shopping in the store fires confetti and toasts. Fixing this single function lights up the core loop across the entire product.
+2. **The Acquisition Blindspot:** `/login` is a 380px single box with a standard `#2563eb` button and disabled Google login. Prospective users never see the crane, crease lines, or the calm ledger aesthetic before signing in. Proposed a two-column login previewing the workspace, or an unauthenticated `/demo` route reusing `src/preview.tsx`.
+3. **Finance cycle floor bug:** `src/context/FinanceContext.tsx:156` floors `diffDays` at 1 forever (`const remainingDays = diffDays > 0 ? diffDays : 1;`), making months-expired cycles read "1 days remaining".
+4. **Accessibility defects:** Todo task check is a 22px `<div onClick>` (`src/pages/Todo.tsx:514-522`) without keyboard accessibility or `aria-pressed`; per-group Add task button is an unlabelled `+` circle with only `title="Add task"` (`src/pages/Todo.tsx:464-478`).
+5. **Layout collisions:** `FocusAudioPlayer.tsx:25` is fixed at `z-40`, colliding with task rows and mobile bounty headers. `src/public/icon.png` is 433 kB (should be an SVG ~10 kB).
+
+**Decisions and why:**
+- **Redact credentials:** Personal login credentials used during dynamic verification (`[REDACTED_EMAIL]`, `[REDACTED_PASSWORD]`) are strictly redacted in `HANDOFF.md` and `PROJECT-HISTORY.md`.
+- **Preserve button accent:** Reaffirmed that `#2563eb` button fills on light theme are the intentional accent token, not a design violation.
+- **Handoff persistence:** Saved the comprehensive findings report to `%TEMP%\handoff-mornigami.md` and committed it to the repo root as `HANDOFF.md` tagged OPEN/PARTIAL/FIXED.
+
+**What shipped:**
+- Handoff artifact written and placed in `HANDOFF.md` at repo root.
+- No application code or database records modified in this pass.
+
+**What was verified / What was NOT checked:**
+- Verified live app dynamic flows via `ego-browser` on local Vite dev server.
+- Did not run `npm run build` or push commits (push restricted to explicit user request).
+
+**What remains:**
+- Implement `gainXP` reason parameter with toast + polite aria-live announcement (with bulk-operation guard).
+- Fix `remainingDays` calculation in `FinanceContext.tsx`.
+- Replace Todo `<div onClick>` and add-task button with accessible semantic buttons.
+- Adjust `FocusAudioPlayer` z-index/positioning.
+- Continue `UI-ROADMAP.md` Phase 2 (Todo and Pomodoro ledger migration).
+
+**Risks:**
+- Adding `toast.success` inside `gainXP` will storm if triggered during `seedDemoData(true)` or admin batch XP edits; must be guarded.
+
+---
+
+## 5. Commit ledger
 
 | Commit | Intent |
 |---|---|
@@ -106,10 +153,14 @@ The owner then asked for "one chat that has all the history", which became **thi
 | `1890cb2` | sky accents, picker into the account menu |
 | `04f7b5b` | sweep of the same accent change |
 | `4337d32` | Habits: one row per habit |
+| `c1406dd` | docs: record the project history and reconcile the handoff |
+| `84914b2` | docs(history): state the update protocol at the top, so a progress ask means the whole session |
+| `7cc2c8f` | docs(agents): make reading the history and updating it part of every task |
+| `a9a6a7f` | docs(history): record live dynamic audit findings and silent XP loop discovery |
 
 ---
 
-## 5. Decisions and why
+## 6. Decisions and why
 
 - **Channels over hex.** Only `rgb(var(--x) / <alpha-value>)` lets Tailwind attach alpha; hex silently deletes the class. Also: a token has two writers — the stylesheet and any inline `setProperty`.
 - **Accent is a separate token.** Using `--color-primary` for the accent meant an accent choice repainted all type. Ink stays ink; accent fills buttons.
@@ -121,7 +172,7 @@ The owner then asked for "one chat that has all the history", which became **thi
 
 ---
 
-## 6. Working notes
+## 7. Working notes
 
 - Vite dies on writes into `src/pages` (`EBUSY … .tmpdir`); restart the server each edit round, `npx tsc --noEmit` first.
 - Never round-trip non-ASCII files through `Set-Content` — it rewrote `UI-ROADMAP.md` as ANSI.
@@ -131,6 +182,6 @@ The owner then asked for "one chat that has all the history", which became **thi
 
 ---
 
-## 7. Maintenance
+## 8. Maintenance
 
 See **How to update this file** at the top — that section is the rule, this file is the memory.
