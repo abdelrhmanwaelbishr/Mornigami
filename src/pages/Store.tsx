@@ -235,7 +235,7 @@ export const Store: React.FC = () => {
             Fold Your Aesthetic
           </h1>
           <p className="max-w-md text-xs text-text-secondary">
-            Exchange your hard-earned XP progression points for custom pastel morning accents,
+            Exchange your hard-earned XP progression points for sky-blue button accents,
             origami avatars, and glowing badge animations.
           </p>
         </div>
