@@ -139,36 +139,33 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
           )}
         </Button>
 
-        {/* 3. XP Progression Bar Widget */}
-        {/* Desktop / Tablet Full Bar (sm:flex) */}
-        <div className="hidden sm:flex items-center gap-3 bg-background px-3.5 py-1.5 rounded-2xl border border-border sm:w-56 md:w-64 lg:w-72 shadow-xs shrink-0">
-          {/* Level Badge */}
-          <div className="bg-primary text-primary-foreground text-xs font-black px-2 py-0.5 rounded-lg shadow-xs shrink-0">
+        {/* Level and XP as one object: no card, no second label */}
+        <button
+          type="button"
+          onClick={() => navigate('/store')}
+          className="hidden sm:flex items-center gap-2.5 h-10 px-2 rounded-xl hover:bg-background transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface cursor-pointer select-none shrink-0"
+          title={`Level ${safeLevel} · ${safeXP} of ${safeXPNeeded} XP — open the Rewards Store`}
+          aria-label={`Level ${safeLevel}, ${safeXP} of ${safeXPNeeded} XP. Open the Rewards Store.`}
+        >
+          <span className="font-display text-sm font-black text-text-primary tabular-nums leading-none">
             L{safeLevel}
-          </div>
-
-          {/* Avatar with Animated Border */}
-          <div
+          </span>
+          <span
             className={cn(
-              'w-7 h-7 rounded-full flex items-center justify-center text-base bg-surface border-2 border-border shrink-0 motion-safe:transition-all',
+              'w-6 h-6 rounded-full flex items-center justify-center text-sm bg-surface border border-border shrink-0 motion-safe:transition-all',
               activeBorder || ''
             )}
-            title={`Level ${safeLevel} Achiever`}
+            aria-hidden="true"
           >
             {activeAvatar || '🌱'}
-          </div>
-
-          {/* Progress Bar & Details */}
-          <div className="flex flex-col flex-1 min-w-0 gap-1">
-            <div className="flex justify-between text-[10px] font-bold text-text-secondary leading-none">
-              <span>XP Progress</span>
-              <span>
-                {safeXP} / {safeXPNeeded} XP
-              </span>
-            </div>
-            <Progress value={safeProgress} className="h-1.5 motion-reduce:[&>div]:transition-none" />
-          </div>
-        </div>
+          </span>
+          <span className="flex flex-col gap-1 w-24 lg:w-28">
+            <span className="text-[11px] font-semibold text-text-secondary tabular-nums leading-none">
+              {safeXP} / {safeXPNeeded}
+            </span>
+            <Progress value={safeProgress} className="h-1 motion-reduce:[&>div]:transition-none" />
+          </span>
+        </button>
 
         {/* Mobile Compact Pill (sm:hidden) */}
         <div
@@ -181,14 +178,14 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
               navigate('/store');
             }
           }}
-          className="flex sm:hidden items-center gap-1.5 bg-background h-10 px-2.5 rounded-xl border border-border shadow-xs shrink-0 cursor-pointer hover:bg-surface active:scale-95 transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface select-none"
+          className="flex sm:hidden items-center gap-1.5 h-10 px-2 rounded-xl border border-border bg-background shrink-0 cursor-pointer hover:bg-surface active:scale-95 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface select-none"
           title={`Level ${safeLevel} • ${safeXP} / ${safeXPNeeded} XP (${safeProgress}%) - Tap to visit Store`}
           aria-label={`Level ${safeLevel}, ${safeXP} of ${safeXPNeeded} XP. Tap to visit Rewards Store.`}
         >
-          <span className="bg-primary text-primary-foreground text-[10px] font-black px-1.5 py-0.5 rounded-md leading-none">
+          <span className="text-[11px] font-black text-text-primary tabular-nums leading-none">
             L{safeLevel}
           </span>
-          <span className="text-xs leading-none">{activeAvatar || '🌱'}</span>
+          <span className="text-sm leading-none">{activeAvatar || '🌱'}</span>
         </div>
 
         {/* 4. User Profile / Login */}
@@ -217,7 +214,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
                     {user.displayName || user.email?.split('@')[0]}
                   </span>
                   {userNumber && (
-                    <span className="text-[10px] font-semibold text-text-secondary">
+                    <span className="text-[11px] font-semibold text-text-secondary tabular-nums">
                       #{userNumber}
                     </span>
                   )}
@@ -245,7 +242,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
                     {user.email}
                   </span>
                   {userNumber && (
-                    <span className="text-[10px] text-primary font-bold">
+                    <span className="text-[11px] text-text-secondary tabular-nums">
                       User ID: #{userNumber}
                     </span>
                   )}

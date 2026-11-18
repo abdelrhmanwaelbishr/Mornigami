@@ -27,12 +27,13 @@ export const Sidebar: React.FC = () => {
     localStorage.setItem('sidebarMinimized', minimized.toString());
   }, [minimized]);
 
+  // Ordered by how often the day touches them, not alphabetically.
   const navItems = [
-    { to: '/finance', label: 'Finance', icon: CircleDollarSign },
+    { to: '/habits', label: 'Habits', icon: Activity },
     { to: '/todo', label: 'To-Do List', icon: ListTodo },
     { to: '/pomodoro', label: 'Pomodoro', icon: Timer },
+    { to: '/finance', label: 'Finance', icon: CircleDollarSign },
     { to: '/playlist', label: 'Playlist', icon: Music },
-    { to: '/habits', label: 'Habits', icon: Activity },
     { to: '/community', label: 'Community', icon: Users },
     { to: '/store', label: 'Rewards Store', icon: ShoppingBag },
     { to: '/settings', label: 'Settings', icon: Settings },
@@ -62,10 +63,10 @@ export const Sidebar: React.FC = () => {
           />
           {!minimized && (
             <div className="flex flex-col leading-tight">
-              <span className="font-display font-black text-xl tracking-tight text-primary">
+              <span className="font-display font-black text-xl tracking-tight text-text-primary">
                 Mornigami
               </span>
-              <span className="text-[10px] font-medium text-text-secondary uppercase tracking-wider">
+              <span className="text-[11px] font-medium text-text-secondary uppercase tracking-wider">
                 Shape your Morning
               </span>
             </div>
@@ -82,10 +83,10 @@ export const Sidebar: React.FC = () => {
                 to={item.to}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm cursor-pointer transition-all duration-200 ease-out active:scale-[0.98] group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface select-none',
+                    'flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm cursor-pointer transition-colors duration-200 ease-out active:scale-[0.98] group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface select-none',
                     isActive
-                      ? 'bg-primary text-primary-foreground font-bold shadow-sm'
-                      : 'text-text-secondary font-medium hover:bg-background hover:text-text-primary'
+                      ? 'bg-background text-text-primary font-semibold'
+                      : 'text-text-secondary font-medium hover:bg-background/60 hover:text-text-primary'
                   )
                 }
                 title={minimized ? item.label : undefined}
