@@ -86,7 +86,7 @@ Wrote `PRODUCT.md` (positioning, four product principles, exact XP table, four o
 
 Another agent had written a `HANDOFF.md` describing the project before the rebuild. Every claim was checked against the code; the doc was rewritten with a commit table, FIXED/PARTIAL/OPEN tags and file:line evidence, and its factual errors corrected (no code altered — wrong; "cream paper" — not the shipped world; blue buttons — that is the intended accent, not a violation). Findings the code confirmed as still open are listed in `HANDOFF.md §2`; the top one is that `gainXP` declares a `reason` it never reads, so the daily loop still celebrates nothing.
 
-The owner then asked for "one chat that has all the history", which became **this file** — the long memory, with its own update protocol at the top so a future agent told to "update progress" writes a full section rather than a status line.
+The owner then asked for "one chat that has all the history", which became **this file** — the long memory, with its own update protocol at the top so a future agent told to "update progress" writes a full section rather than a status line. And because a file nobody opens changes nothing, the owner asked for a repo-level **`AGENTS.md`** to make it binding: read this file before any task here, update it when the task is done. That file also carries the repo's ground rules (smallest complete change, design follows `DESIGN.md` rather than taste, verify in both themes at three widths, never commit secrets, push only when asked).
 
 ---
 
