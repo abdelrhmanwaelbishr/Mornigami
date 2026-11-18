@@ -4,36 +4,42 @@
 
 @layer base {
   :root {
+    color-scheme: light;
+    /* Channel triplets so Tailwind can attach an alpha channel (see tailwind.config.js).
+       A hex value here silently disables every colour opacity modifier. */
     /* Mornigami Light Theme Defaults */
-    --color-primary: #0F172A;
-    --color-primary-light: #334155;
-    --color-primary-dark: #000000;
-    --color-primary-contrast: #FFFFFF;
+    --color-primary: 15 23 42;
+    --color-primary-light: 51 65 85;
+    --color-primary-dark: 0 0 0;
+    --color-primary-contrast: 255 255 255;
 
-    --color-secondary: #38BDF8;
-    --color-secondary-light: #7DD3FC;
-    --color-secondary-dark: #0284C7;
+    --color-secondary: 56 189 248;
+    --color-secondary-light: 125 211 252;
+    --color-secondary-dark: 2 132 199;
 
-    --color-success: #22C55E;
-    --color-success-light: #4ADE80;
-    --color-success-bg: #F0FDF4;
+    --color-success: 34 197 94;
+    --color-success-light: 74 222 128;
+    --color-success-bg: 240 253 244;
+    --color-success-ink: 21 128 61;
 
-    --color-warning: #F59E0B;
-    --color-warning-light: #FBBF24;
-    --color-warning-bg: #FFFBEB;
+    --color-warning: 245 158 11;
+    --color-warning-light: 251 191 36;
+    --color-warning-bg: 255 251 235;
+    --color-warning-ink: 180 83 9;
 
-    --color-danger: #EF4444;
-    --color-danger-light: #F87171;
-    --color-danger-bg: #FEF2F2;
+    --color-danger: 239 68 68;
+    --color-danger-light: 248 113 113;
+    --color-danger-bg: 254 242 242;
+    --color-danger-ink: 220 38 38;
 
-    --color-bg: #F1F5F9;
-    --color-surface: #FFFFFF;
-    --color-border: #CBD5E1;
-    --color-border-light: #F0F9FF;
+    --color-bg: 241 245 249;
+    --color-surface: 255 255 255;
+    --color-border: 203 213 225;
+    --color-border-light: 240 249 255;
 
-    --color-text-primary: #0F172A;
-    --color-text-secondary: #64748B;
-    --color-text-tertiary: #94A3B8;
+    --color-text-primary: 15 23 42;
+    --color-text-secondary: 100 116 139;
+    --color-text-tertiary: 148 163 184;
 
     --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
@@ -45,23 +51,27 @@
   }
 
   .dark {
-    --color-primary: #FFFFFF;
-    --color-primary-light: #F1F5F9;
-    --color-primary-dark: #CBD5E1;
-    --color-primary-contrast: #0F172A;
+    color-scheme: dark;
+    --color-primary: 255 255 255;
+    --color-primary-light: 241 245 249;
+    --color-primary-dark: 203 213 225;
+    --color-primary-contrast: 15 23 42;
 
-    --color-bg: #121212;
-    --color-surface: #1E1E1E;
-    --color-border: #333333;
-    --color-border-light: #2D3748;
+    --color-bg: 18 18 18;
+    --color-surface: 30 30 30;
+    --color-border: 51 51 51;
+    --color-border-light: 45 55 72;
 
-    --color-text-primary: #E2E8F0;
-    --color-text-secondary: #CBD5E1;
-    --color-text-tertiary: #94A3B8;
+    --color-text-primary: 226 232 240;
+    --color-text-secondary: 203 213 225;
+    --color-text-tertiary: 148 163 184;
 
-    --color-success-bg: #052E16;
-    --color-warning-bg: #451A03;
-    --color-danger-bg: #450A0A;
+    --color-success-bg: 5 46 22;
+    --color-success-ink: 34 197 94;
+    --color-warning-bg: 69 26 3;
+    --color-warning-ink: 245 158 11;
+    --color-danger-bg: 69 10 10;
+    --color-danger-ink: 239 68 68;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -70,11 +80,11 @@
   }
 
   * {
-    border-color: var(--color-border);
+    border-color: rgb(var(--color-border));
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid rgb(var(--color-primary));
     outline-offset: 2px;
   }
 
@@ -88,8 +98,8 @@
   }
 
   body {
-    background-color: var(--color-bg);
-    color: var(--color-text-primary);
+    background-color: rgb(var(--color-bg));
+    color: rgb(var(--color-text-primary));
     font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
@@ -107,11 +117,11 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: rgb(var(--color-border));
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-tertiary);
+  background: rgb(var(--color-text-tertiary));
 }
 
 /* Custom Animated Badge Borders */
@@ -127,7 +137,7 @@
 
 .rainbow-border {
   border-color: transparent !important;
-  background-image: linear-gradient(var(--color-surface), var(--color-surface)), linear-gradient(135deg, #EF4444, #F59E0B, #10B981, #38BDF8, #8A2BE2);
+  background-image: linear-gradient(rgb(var(--color-surface)), rgb(var(--color-surface))), linear-gradient(135deg, #EF4444, #F59E0B, #10B981, #38BDF8, #8A2BE2);
   background-origin: border-box;
   background-clip: padding-box, border-box;
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.5) !important;

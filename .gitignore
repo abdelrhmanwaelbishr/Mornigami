@@ -32,4 +32,5 @@ graphify-out/
 
 # impeccable: per-machine hook consent
 .impeccable/config.local.json
+.impeccable/shots/
 

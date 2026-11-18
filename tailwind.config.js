@@ -8,40 +8,45 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: 'var(--color-bg)',
-        surface: 'var(--color-surface)',
-        border: 'var(--color-border)',
-        'border-light': 'var(--color-border-light)',
+        // Tokens are channel triplets in index.css, so <alpha-value> works:
+        // a hex token here would silently drop every bg-*/text-*/border-* opacity class.
+        background: 'rgb(var(--color-bg) / <alpha-value>)',
+        surface: 'rgb(var(--color-surface) / <alpha-value>)',
+        border: 'rgb(var(--color-border) / <alpha-value>)',
+        'border-light': 'rgb(var(--color-border-light) / <alpha-value>)',
         primary: {
-          DEFAULT: 'var(--color-primary)',
-          light: 'var(--color-primary-light)',
-          dark: 'var(--color-primary-dark)',
-          foreground: 'var(--color-primary-contrast)',
+          DEFAULT: 'rgb(var(--color-primary) / <alpha-value>)',
+          light: 'rgb(var(--color-primary-light) / <alpha-value>)',
+          dark: 'rgb(var(--color-primary-dark) / <alpha-value>)',
+          foreground: 'rgb(var(--color-primary-contrast) / <alpha-value>)',
         },
         secondary: {
-          DEFAULT: 'var(--color-secondary)',
-          light: 'var(--color-secondary-light)',
-          dark: 'var(--color-secondary-dark)',
+          DEFAULT: 'rgb(var(--color-secondary) / <alpha-value>)',
+          light: 'rgb(var(--color-secondary-light) / <alpha-value>)',
+          dark: 'rgb(var(--color-secondary-dark) / <alpha-value>)',
         },
         success: {
-          DEFAULT: 'var(--color-success)',
-          light: 'var(--color-success-light)',
-          bg: 'var(--color-success-bg)',
+          DEFAULT: 'rgb(var(--color-success) / <alpha-value>)',
+          light: 'rgb(var(--color-success-light) / <alpha-value>)',
+          bg: 'rgb(var(--color-success-bg) / <alpha-value>)',
+          ink: 'rgb(var(--color-success-ink) / <alpha-value>)',
         },
         warning: {
-          DEFAULT: 'var(--color-warning)',
-          light: 'var(--color-warning-light)',
-          bg: 'var(--color-warning-bg)',
+          DEFAULT: 'rgb(var(--color-warning) / <alpha-value>)',
+          light: 'rgb(var(--color-warning-light) / <alpha-value>)',
+          bg: 'rgb(var(--color-warning-bg) / <alpha-value>)',
+          ink: 'rgb(var(--color-warning-ink) / <alpha-value>)',
         },
         danger: {
-          DEFAULT: 'var(--color-danger)',
-          light: 'var(--color-danger-light)',
-          bg: 'var(--color-danger-bg)',
+          DEFAULT: 'rgb(var(--color-danger) / <alpha-value>)',
+          light: 'rgb(var(--color-danger-light) / <alpha-value>)',
+          bg: 'rgb(var(--color-danger-bg) / <alpha-value>)',
+          ink: 'rgb(var(--color-danger-ink) / <alpha-value>)',
         },
         text: {
-          primary: 'var(--color-text-primary)',
-          secondary: 'var(--color-text-secondary)',
-          tertiary: 'var(--color-text-tertiary)',
+          primary: 'rgb(var(--color-text-primary) / <alpha-value>)',
+          secondary: 'rgb(var(--color-text-secondary) / <alpha-value>)',
+          tertiary: 'rgb(var(--color-text-tertiary) / <alpha-value>)',
         },
       },
       fontFamily: {

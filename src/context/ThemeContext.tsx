@@ -22,21 +22,25 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return localStorage.getItem('accentColor') || '';
   });
 
-  const applyAccentColor = (color: string, currentTheme: Theme) => {
+  // Tokens are channel triplets (see index.css); a hex here silently kills every
+  // colour opacity modifier on primary.
+  const hexToChannels = (hex: string) => {
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    const n = parseInt(full, 16);
+    return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
+  };
+
+  const applyAccentColor = (color: string) => {
     const root = document.documentElement;
-    if (color) {
-      root.style.setProperty('--color-primary', color);
-      // Ensure high-contrast foreground text for light pastel accents
-      root.style.setProperty('--color-primary-contrast', '#0F172A');
-    } else {
-      if (currentTheme === 'dark') {
-        root.style.setProperty('--color-primary', '#FFFFFF');
-        root.style.setProperty('--color-primary-contrast', '#0F172A');
-      } else {
-        root.style.setProperty('--color-primary', '#0F172A');
-        root.style.setProperty('--color-primary-contrast', '#FFFFFF');
-      }
+    if (!color) {
+      root.style.removeProperty('--color-primary');
+      root.style.removeProperty('--color-primary-contrast');
+      return;
     }
+    root.style.setProperty('--color-primary', hexToChannels(color));
+    // Ensure high-contrast foreground text for light pastel accents
+    root.style.setProperty('--color-primary-contrast', '15 23 42');
   };
 
   useEffect(() => {
@@ -49,7 +53,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       root.classList.add('light-theme');
     }
     localStorage.setItem('theme', theme);
-    applyAccentColor(accentColor, theme);
+    applyAccentColor(accentColor);
   }, [theme, accentColor]);
 
   const toggleTheme = () => {

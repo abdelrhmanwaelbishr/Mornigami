@@ -7,6 +7,11 @@ import { useHabits } from '@/context/HabitsContext';
 import { usePomodoro } from '@/context/PomodoroContext';
 import { useTasks } from '@/context/TasksContext';
 import { Button } from '@/components/ui/Button';
+import { Creases } from '@/components/ui/Creases';
+import { Sheet } from '@/components/ui/Sheet';
+import { SheetHeading } from '@/components/ui/SheetHeading';
+import { Stat } from '@/components/ui/Stat';
+import { TaskTick } from '@/components/ui/TaskTick';
 import { ArrowRight, Check, Clock, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Task, TaskPriority } from '@/types';
@@ -31,18 +36,6 @@ const dueLabel = (task: Task, today: string) => {
   const [, month, day] = task.dueDate.split('-');
   return `${Number(day)} ${new Date(2000, Number(month) - 1, 1).toLocaleDateString('en-GB', { month: 'short' })}`;
 };
-
-/** Crease marks: one tick per unit, filled left to right. */
-const Creases: React.FC<{ done: number; total: number }> = ({ done, total }) => (
-  <span className="flex gap-1" aria-hidden="true">
-    {Array.from({ length: Math.min(total, 8) }, (_, i) => (
-      <span
-        key={i}
-        className={cn('h-1.5 w-5 rounded-[1px] transition-colors duration-200', i < done ? 'bg-primary' : 'bg-border')}
-      />
-    ))}
-  </span>
-);
 
 export const Home: React.FC = () => {
   const { userDoc } = useAuth();
@@ -89,7 +82,7 @@ export const Home: React.FC = () => {
 
   const firstName = (userDoc?.displayName || '').trim().split(' ')[0];
 
-  const measures = [
+  const measures: { value: string; label: string; note: string; prefix?: string }[] = [
     {
       value: `${foldedToday}/${scheduled.length}`,
       label: 'habits folded',
@@ -106,7 +99,8 @@ export const Home: React.FC = () => {
       note: `${stats.sessionsToday} ${stats.sessionsToday === 1 ? 'session' : 'sessions'} of ${settings.workDuration} min`,
     },
     {
-      value: `${financeData.currency} ${Math.round(financeData.dailyBudget).toLocaleString()}`,
+      prefix: financeData.currency,
+      value: Math.round(financeData.dailyBudget).toLocaleString(),
       label: 'daily budget',
       note: `${cycleDetails.remainingDays} days left in cycle`,
     },
@@ -129,22 +123,13 @@ export const Home: React.FC = () => {
       {/* Today and Bounties share the fold; the week strip closes the page. */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
         {/* Today: four measures, hairline seams instead of separate cards. */}
-        <section
-          aria-labelledby="today-heading"
-          className="overflow-hidden rounded-3xl border border-border bg-surface lg:col-start-1 lg:row-start-1"
-        >
+        <Sheet aria-labelledby="today-heading" className="lg:col-start-1 lg:row-start-1">
         <h2 id="today-heading" className="sr-only">
           Today
         </h2>
         <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-4">
           {measures.map((measure) => (
-            <div key={measure.label} className="bg-surface p-4 sm:p-5">
-              <p className="font-display text-2xl font-black leading-none tracking-tight text-text-primary tabular-nums sm:text-3xl">
-                {measure.value}
-              </p>
-              <p className="mt-2 text-xs font-medium text-text-secondary">{measure.label}</p>
-              <p className="mt-1 text-xs text-text-secondary">{measure.note}</p>
-            </div>
+            <Stat key={measure.label} {...measure} />
           ))}
         </div>
 
@@ -174,20 +159,13 @@ export const Home: React.FC = () => {
                 const due = dueLabel(task, today);
                 return (
                   <li key={task.id} className="flex items-center gap-3 py-2 first:pt-1 last:pb-1">
-                    <button
-                      type="button"
-                      onClick={() => toggleTask(task.id)}
-                      aria-label={`Mark "${task.title}" done`}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[6px] border border-border bg-transparent text-transparent transition-colors duration-200 hover:border-success hover:bg-success-bg hover:text-success focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                    >
-                      <Check className="h-4 w-4" aria-hidden="true" />
-                    </button>
+                    <TaskTick onToggle={() => toggleTask(task.id)} label={`Mark "${task.title}" done`} />
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary">{task.title}</span>
                     {due && (
                       <span
                         className={cn(
                           'shrink-0 text-xs font-semibold',
-                          due === 'Overdue' ? 'text-red-600 dark:text-danger' : due === 'Today' ? 'text-amber-700 dark:text-warning' : 'text-text-secondary'
+                          due === 'Overdue' ? 'text-danger-ink' : due === 'Today' ? 'text-warning-ink' : 'text-text-secondary'
                         )}
                       >
                         {due}
@@ -199,21 +177,17 @@ export const Home: React.FC = () => {
             </ul>
           )}
         </div>
-      </section>
+      </Sheet>
 
       {/* Bounties: the day's offers, as a ledger. */}
-      <section
+      <Sheet
         aria-labelledby="bounties-heading"
-        className="overflow-hidden rounded-3xl border border-border bg-surface lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:self-start"
+        className="lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:self-start"
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4 sm:px-5">
-          <div className="flex items-center gap-2">
-            <Flame className="h-4 w-4 text-amber-600 dark:text-warning" aria-hidden="true" />
-            <h2 id="bounties-heading" className="font-display text-base font-bold text-text-primary">
-              Bounties
-            </h2>
-            <span className="text-xs text-text-secondary">· resets at midnight</span>
-          </div>
+          <SheetHeading id="bounties-heading" icon={<Flame className="h-4 w-4 text-warning-ink" aria-hidden="true" />} note="· resets at midnight">
+            Bounties
+          </SheetHeading>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary tabular-nums">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" />
             <span className="sr-only">Time left today:</span>
@@ -236,7 +210,7 @@ export const Home: React.FC = () => {
               <li key={bounty.id} className="px-4 py-3.5 sm:px-5">
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="min-w-0 flex-1 text-sm font-semibold text-text-primary">{bounty.title}</p>
-                  <span className="shrink-0 text-xs font-bold text-amber-700 tabular-nums dark:text-warning">+{bounty.xp} XP</span>
+                  <span className="shrink-0 text-xs font-bold text-warning-ink tabular-nums">+{bounty.xp} XP</span>
                 </div>
                 <p className="mt-0.5 text-xs text-text-secondary">{bounty.desc}</p>
 
@@ -256,7 +230,7 @@ export const Home: React.FC = () => {
                       Claim
                     </Button>
                   ) : bounty.completed ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 dark:text-success">
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-success-ink">
                       <Check className="h-3.5 w-3.5" aria-hidden="true" />
                       Claimed
                     </span>
@@ -272,20 +246,20 @@ export const Home: React.FC = () => {
         {bounties.length > 0 && (
           <div className="mt-auto flex items-center justify-between gap-3 border-t border-border p-4 sm:px-5">
             <span className="text-xs text-text-secondary">XP still unclaimed today</span>
-            <span className="text-xs font-bold text-amber-700 tabular-nums dark:text-warning">{unclaimedXp} XP</span>
+            <span className="text-xs font-bold text-warning-ink tabular-nums">{unclaimedXp} XP</span>
           </div>
         )}
-      </section>
+      </Sheet>
 
         {/* The week, as creases. */}
-        <section
+        <Sheet
           aria-labelledby="week-heading"
-          className="rounded-3xl border border-border bg-surface p-4 sm:p-5 lg:col-start-1 lg:row-start-2"
+          className="p-4 sm:p-5 lg:col-start-1 lg:row-start-2"
         >
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="week-heading" className="font-display text-base font-bold text-text-primary">
+            <SheetHeading id="week-heading" level="h2">
               Last seven days
-            </h2>
+            </SheetHeading>
             <p className="text-xs text-text-secondary">
               {bestStreak > 0 ? `Best streak ${bestStreak} ${bestStreak === 1 ? 'day' : 'days'}` : 'No streak yet'}
             </p>
@@ -316,7 +290,7 @@ export const Home: React.FC = () => {
               </li>
             ))}
           </ol>
-        </section>
+        </Sheet>
       </div>
     </div>
   );
