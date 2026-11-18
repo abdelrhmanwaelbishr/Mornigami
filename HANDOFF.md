@@ -22,6 +22,7 @@ The previous handoff was written before the redesign started. Since then the des
 | `1890cb2` + `04f7b5b` | accent picker moved into the account menu; sky palette (Dawn/Morning/Noon/Midnight); default accent is the opposite of the theme; retired pastels kept in data |
 | `4337d32` | Habits rewritten as ledger rows; Todo day groups lost their 2px cyan outline |
 | `21f43e8` | **Phase 2 finished** — `gainXP` now shows a receipt, `PageHeader` shared by three pages, Pomodoro and Todo rebuilt as ledgers, and three silent bugs fixed: task `completedAt`, bounty "today" from local parts, real consecutive streaks |
+| `eac8302` | sidebar rebuilt as an index of hairline rows: brand row is exactly the top bar's 64px, rows are 44px full-bleed lines, pills/scale motion/uppercase strapline gone, wordmark marks the home route |
 
 **State of the rebuild:** `UI-ROADMAP.md` Phases 0, 1 and 2 are done (Habits, Todo, Pomodoro all on the ledger). Phases 3–6 remain.
 
@@ -69,7 +70,7 @@ Legend: **OPEN** · **PARTIAL** · **FIXED**
 - Store purchase, badge/avatar/border equipping, accent switching.
 - Pomodoro countdown and controls.
 - Theme switching in both directions, including on `/login`.
-- **New invariants:** the accent fills buttons only; headings, numerals and the wordmark stay ink; sheets sit on hairlines with no shadow at rest; every XP award shows exactly one receipt, and the receipt sits below the 64px top bar (`offset={{ top: 76, right: 16 }}`).
+- **New invariants:** the accent fills buttons only; headings, numerals and the wordmark stay ink; sheets sit on hairlines with no shadow at rest; every XP award shows exactly one receipt, and the receipt sits below the 64px top bar (`offset={{ top: 76, right: 16 }}`); the sidebar's brand row is `h-16` so its hairline continues the top bar's, and nav rows are 44px lines on `divide-y`, not cards.
 
 ---
 
@@ -106,7 +107,7 @@ Legend: **OPEN** · **PARTIAL** · **FIXED**
 - **`text-foreground` is not a colour** in this Tailwind config — it silently inherits. Use `text-text-primary`.
 - **Never round-trip non-ASCII files through `Set-Content`** (it rewrote `UI-ROADMAP.md` as ANSI and broke the em dashes). Use the editor/write tool.
 - **Vite dies on writes into `src/pages`** with `EBUSY: resource busy or locked` on the editor's `.tmpdir`; every edit round needs a server restart (`npx tsc --noEmit` first as a cheap gate).
-- **Dev preview harness:** `preview.html` + `src/preview.tsx` render any page with seeded demo data (`?p=home|habits|todo|pomodoro|finance|playlist|store|community|settings|admin&theme=light|dark`) on `npx vite --port 5210 --strictPort`. Neither file is imported by `index.html`, so nothing ships.
+- **Dev preview harness:** `preview.html` + `src/preview.tsx` render any page with seeded demo data (`?p=home|habits|todo|pomodoro|finance|playlist|store|community|settings|admin&theme=light|dark`) on `npx vite --port 5210 --strictPort`. It mounts the matching route, so `NavLink` active states are real. Neither file is imported by `index.html`, so nothing ships. It does not simulate `userRole === 'admin'`, so the Admin row cannot be seen there.
 - **`git push` prints progress on stderr**, so PowerShell reports exit 1 on success. Verify with `git fetch` + `git log origin/main`.
 - **The demo seed is version-blind.** `seedDemoData(force = false)` only fills empty keys, so a corrected seed never reaches a browser that already has data. Clear `localStorage`/`sessionStorage` and reload before verifying seed changes.
 - **`dayStr(offset)` in `demoData.ts` means offset days *ago*** — positive is the past. The demo tasks once passed negatives and landed in the future.

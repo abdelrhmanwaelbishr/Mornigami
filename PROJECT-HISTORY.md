@@ -20,7 +20,7 @@ Then: `git log` the new commits, extend the commit ledger in §4, and keep `HAND
 - **Live:** https://mornigami.vercel.app
 - **Stack:** React 18.3 · TypeScript 5.5 · Vite 5.4 · Tailwind 3.4 · Firebase 10.8 (Auth + Firestore, project `bishr-hub`)
 - **Docs:** `PRODUCT.md` (what it is) · `DESIGN.md` (the visual contract) · `UI-ROADMAP.md` (phases 0–6) · `HANDOFF.md` (open findings)
-- **State as of writing:** `origin/main` at `4337d32`; local `main` at `21f43e8` (+6 commits ahead, unpushed); `HANDOFF.md` and `PROJECT-HISTORY.md` tracked.
+- **State as of writing:** `origin/main` at `ae4fcc7`; local `main` at `eac8302` (+1 commit ahead, unpushed); `HANDOFF.md` and `PROJECT-HISTORY.md` tracked.
 
 ---
 
@@ -169,6 +169,23 @@ The owner then asked for "one chat that has all the history", which became **thi
 
 **Risks for the next agent.** `TasksContext.toggleTask` now writes `completedAt`; anything that reads `completed` alone (Admin, bounty maths, future history views) should be checked before assuming a date exists. `computeStreak` is recomputed on every toggle and on every Firestore sync, so a habit whose `completedDates` were written by the old code will show a *lower* streak than before — that is the correction, not a regression. The dev server still dies on writes into `src/` (EBUSY `.tmpdir`), so budget one restart per edit round.
 
+### Same evening — the left sidebar (`eac8302`)
+
+**Ask:** "revamp the left sidebar /frontend-less-tokens." Routed the same way as the rest of Phase 2: `DESIGN.md` is the authority, no second design skill.
+
+**What changed and why:**
+- **Brand row is now exactly `h-16`**, the top bar's height, so the two hairlines meet across the shell — they had been 72px and 64px, leaving a visible step at the seam.
+- **Nav rows became one index instead of eight floating pills.** `divide-y divide-border` on the list, each row `min-h-11` (44px, measured), full-bleed, `rounded-xl` gone. This is the ledger rule applied to navigation: the seam is the divider, and a row is a line in a list, not a card.
+- **The all-caps strapline "SHAPE YOUR MORNING" is gone** — an uppercase eyebrow is explicitly banned, and it was the loudest thing in the column. The brand line survives in sentence case at 11px.
+- **Motion deleted, not tuned:** `active:scale-[0.98]` on every row and `group-hover:scale-105` on every icon were a tic, not a moment. Width now transitions in 200 ms; nothing scales.
+- **The collapse control became a quiet row** matching the nav instead of a bordered full-width button (it was also 36px, under the touch floor). It is 44px now.
+- **The wordmark is the home link and shows its own active state** (`end` on the `NavLink`), because Home has no nav row — before this, standing on `/` highlighted nothing at all.
+- **Dead tokens deleted:** `--sidebar-width` / `--sidebar-width-minimized` were declared in `index.css` and read by nobody; they now disagreed with the component's 248/76.
+
+**Verified by looking and by measuring:** `aside` 248px (76px minimized), brand row 64px with `brandBottom === headerBottom === 64`, every nav row 44px, no horizontal overflow at 1280 / 900 / 768, light and dark, expanded and collapsed. `npx tsc --noEmit` clean, `vite build` clean (402.79 kB main). **Not checked:** the real app with an admin account (the Admin row only appears for `userRole === 'admin'`, which the preview harness does not simulate), and the mobile drawer, which still has its own vocabulary — deliberately out of scope.
+
+**Found on the way:** the dev preview harness mounted every page at `/`, so `NavLink` active states were untestable and the brand link always looked active. It now mounts the real route (`initialEntries` set to `/<page>` with a `path="*"` child), which is why the active-row behaviour could be confirmed at all.
+
 ---
 
 ## 6. Commit ledger
@@ -192,6 +209,7 @@ The owner then asked for "one chat that has all the history", which became **thi
 | `7cc2c8f` | docs(agents): make reading the history and updating it part of every task |
 | `a9a6a7f` | docs(history): record live dynamic audit findings and silent XP loop discovery |
 | `21f43e8` | Phase 2 finished: XP receipt in `gainXP`, `PageHeader`, Pomodoro and Todo rebuilt, `completedAt` / local bounty day / real streak |
+| `eac8302` | sidebar as an index of hairline rows; brand row meets the top bar; preview harness honours the route |
 
 *2026-11-18 evening: the `a9a6a7f` row above resolves to `4f1060d` in the current history — the docs commit was rewritten, so grep for its message, not its hash.*
 
