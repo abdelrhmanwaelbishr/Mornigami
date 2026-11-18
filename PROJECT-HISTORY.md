@@ -20,7 +20,7 @@ Then: `git log` the new commits, extend the commit ledger in §4, and keep `HAND
 - **Live:** https://mornigami.vercel.app
 - **Stack:** React 18.3 · TypeScript 5.5 · Vite 5.4 · Tailwind 3.4 · Firebase 10.8 (Auth + Firestore, project `bishr-hub`)
 - **Docs:** `PRODUCT.md` (what it is) · `DESIGN.md` (the visual contract) · `UI-ROADMAP.md` (phases 0–6) · `HANDOFF.md` (open findings)
-- **State as of writing:** `origin/main` at `4337d32`; local `main` at `7cc2c8f` (+3 commits ahead, unpushed); `HANDOFF.md` and `PROJECT-HISTORY.md` tracked.
+- **State as of writing:** `origin/main` at `4337d32`; local `main` at `21f43e8` (+6 commits ahead, unpushed); `HANDOFF.md` and `PROJECT-HISTORY.md` tracked.
 
 ---
 
@@ -137,7 +137,41 @@ The owner then asked for "one chat that has all the history", which became **thi
 
 ---
 
-## 5. Commit ledger
+## 5. Session 2026-11-18 · evening — Phase 2 finished: the receipt, and two pages moved onto the ledger
+
+**Goal that arrived:** read what the project is, then "what's next on revamping the ui progress?", "what you'd do first?", "as short as possible, bullet points", then `/frontend-less-tokens start implementing.` — i.e. finish Phase 2 of `UI-ROADMAP.md`.
+
+**Routing decision.** `/frontend-less-tokens` says pick one design authority. None was loaded: this repo already has one, `DESIGN.md`, and `AGENTS.md` forbids inventing a look. So the skill was used only for its shared rules and discipline; `ponytail` stayed on, `ego-browser` did the verification.
+
+**Order chosen, and why.** XP receipt first because every award path funnels through `gainXP`, so one edit makes the whole loop legible; a page-level toast would have had to be duplicated six times. Then the shared header, then Pomodoro (the biggest visual debt), then Todo, then the correctness items *inside* those rewrites so the same files were not opened twice.
+
+**What shipped — `21f43e8`, 12 files, +567 / −971:**
+- `GamificationContext.tsx` — `gainXP(amount, reason)` now renders `+30 XP · Task completed` in Sonner for 2400 ms. Not `richColors`, not a celebration: the celebration stays on level-ups, which already fire confetti and the modal.
+- `src/components/ui/PageHeader.tsx` (new) — title / note / actions, used by Habits, Pomodoro and Todo.
+- `Pomodoro.tsx` rebuilt: the SVG donut, the `blur-3xl` glow and `animate-pulse` are gone. Numeral (30/36 display, `tabular-nums`), a 2px "crease" bar as the only progress mark, a set of four creases that fills per session, a hairline three-way mode switch, and a quiet full-screen Zen mode.
+- `Todo.tsx` rebuilt: three stat cards, the list/grid toggle, `formatTaskDate` and the 22px `<div onClick>` check are gone. One sheet per due date on hairline seams, 44px `TaskTick`, priority as a coloured word, row actions only on hover/focus, drag-to-date kept.
+- Correctness: `Task.completedAt` (`src/types/index.ts`), set and cleared in `TasksContext.toggleTask`; `BountiesContext` counts "completed today" from local calendar parts through a new `localDateKey`, and requires `completedAt`; `HabitsContext.computeStreak` walks real consecutive days, so a missed day now breaks the streak instead of the old lifetime counter.
+- `demoData.ts`: the two seeded completed tasks got a `completedAt`, and the three pending tasks' due dates were moved off the future (see below).
+
+**Discoveries:**
+1. **`dayStr` counted the wrong way.** `dayStr` is `setDate(getDate() - offsetDays)`, so positive offsets are days *ago*; the demo tasks passed `dayStr(-1..-3)` and therefore sat in the future, which is why the first Todo screenshot read "Tomorrow · Friday, November 20 · Saturday, November 21". Fixed at the four call sites, not in the helper, and the convention is now commented.
+2. **Demo seeding is version-blind.** `seedDemoData(force = false)` only writes empty keys, so a corrected seed never reaches a browser that already has data. Every verification run now clears `localStorage` first; otherwise you are testing yesterday's seed.
+3. **The toast landed on the bar.** At `position="top-right"` the receipt covered the level meter and Sign In. Both mounts now pass `offset={{ top: 76, right: 16 }}` (`MainLayout.tsx:63`, `StandaloneLayout.tsx:47`) — "Receipts sit below the 64px bar instead of on top of it."
+4. **A suspected filter bug that was not one.** A screenshot showed a just-ticked task still sitting under the Pending filter with the count already updated. A live DOM probe proved the opposite — group gone, `2 open · 5 done`, toast present — and the screenshot had simply caught the frame before React committed. Lesson: a screenshot is evidence of a frame, not of behaviour; probe the DOM before calling it a bug.
+
+**Verified / not verified.** `npx tsc --noEmit` clean (4 runs) and `npx vite build` clean (403 kB main chunk, 9.5 s). Screenshots through `ego-browser` at 1280 / 768 / 390 in both themes for Todo, Pomodoro and Habits, with zero horizontal overflow at any of the twelve combinations. The receipt was proved by state, not by eye: `localStorage.userXP` went 2450 → 2480 and `[data-sonner-toast]` read `+30 XP · Task completed`. **Not checked:** the real signed-in app against Firestore (the preview harness runs on localStorage), Firefox/Safari, and whether Sonner's live region actually announces on this version.
+
+**Deliberately left alone / open with the owner:**
+- Zen mode uses a 60–72px numeral, which is a third numeral size and therefore against `DESIGN.md`. It is the one intentional departure; the owner has not yet said keep or drop it.
+- At 390 the shell wordmark truncates to "Morni…" (left group gets 154px of 390). Measured, real, and Phase 1 shell work — not touched here.
+- Habits category chips still scroll horizontally at 390 with a visible scrollbar (pre-existing).
+- Still open from the audit: `FinanceContext.tsx:156` "1 day remaining" floor, `public/icon.png` at ~434 kB, `FocusAudioPlayer` stacking.
+
+**Risks for the next agent.** `TasksContext.toggleTask` now writes `completedAt`; anything that reads `completed` alone (Admin, bounty maths, future history views) should be checked before assuming a date exists. `computeStreak` is recomputed on every toggle and on every Firestore sync, so a habit whose `completedDates` were written by the old code will show a *lower* streak than before — that is the correction, not a regression. The dev server still dies on writes into `src/` (EBUSY `.tmpdir`), so budget one restart per edit round.
+
+---
+
+## 6. Commit ledger
 
 | Commit | Intent |
 |---|---|
@@ -157,10 +191,13 @@ The owner then asked for "one chat that has all the history", which became **thi
 | `84914b2` | docs(history): state the update protocol at the top, so a progress ask means the whole session |
 | `7cc2c8f` | docs(agents): make reading the history and updating it part of every task |
 | `a9a6a7f` | docs(history): record live dynamic audit findings and silent XP loop discovery |
+| `21f43e8` | Phase 2 finished: XP receipt in `gainXP`, `PageHeader`, Pomodoro and Todo rebuilt, `completedAt` / local bounty day / real streak |
+
+*2026-11-18 evening: the `a9a6a7f` row above resolves to `4f1060d` in the current history — the docs commit was rewritten, so grep for its message, not its hash.*
 
 ---
 
-## 6. Decisions and why
+## 7. Decisions and why
 
 - **Channels over hex.** Only `rgb(var(--x) / <alpha-value>)` lets Tailwind attach alpha; hex silently deletes the class. Also: a token has two writers — the stylesheet and any inline `setProperty`.
 - **Accent is a separate token.** Using `--color-primary` for the accent meant an accent choice repainted all type. Ink stays ink; accent fills buttons.
@@ -172,7 +209,7 @@ The owner then asked for "one chat that has all the history", which became **thi
 
 ---
 
-## 7. Working notes
+## 8. Working notes
 
 - Vite dies on writes into `src/pages` (`EBUSY … .tmpdir`); restart the server each edit round, `npx tsc --noEmit` first.
 - Never round-trip non-ASCII files through `Set-Content` — it rewrote `UI-ROADMAP.md` as ANSI.
@@ -182,6 +219,6 @@ The owner then asked for "one chat that has all the history", which became **thi
 
 ---
 
-## 8. Maintenance
+## 9. Maintenance
 
 See **How to update this file** at the top — that section is the rule, this file is the memory.

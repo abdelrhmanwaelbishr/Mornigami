@@ -96,6 +96,8 @@ Verify: `.bg-primary\/10` **exists** in `dist/assets/*.css` and a rendered tile 
 
 **Exit:** the three pages share the same header, sheet and row primitives; folding a habit, completing a task and finishing a session all visibly feed the same XP economy without leaving the page.
 
+**Done — `4337d32` (Habits) and `21f43e8` (Todo, Pomodoro).** `PageHeader` is the shared header; all three pages are one sheet (or one sheet per day, in Todo's case) of hairline rows; `gainXP` now returns a visible receipt, so every action feeds the loop on the page. Deliberate departures: Todo groups by due date rather than Today / This week / Later (the data has dates, not buckets), priority is a coloured word rather than a crease (a 2px crease could not carry three levels), and Zen mode uses a larger numeral than the rest of the app — flagged to the owner.
+
 ### Phase 3 — Money and learning
 
 - `Finance.tsx` (851): cycle header with three measures (budget, spent, left), expenses as a ledger with a running total, savings and goals on one sheet. Tables keep `tabular-nums` and aligned decimals.

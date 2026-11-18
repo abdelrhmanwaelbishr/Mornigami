@@ -1,9 +1,9 @@
 # Mornigami Handoff & Session State
 
-**Last updated:** 2026-11-18 (second session — progress pass)
+**Last updated:** 2026-11-18 (third session — Phase 2 finished)
 **Repository:** `D:/Programming/Mornigami Files/Mornigami`
 **Working Stack:** React 18, TypeScript, Vite 5, Tailwind CSS, Firebase (Auth + Firestore), Sonner (Toasts), Canvas-Confetti
-**Deployed:** https://mornigami.vercel.app (`origin/main` @ `4337d32`)
+**Deployed:** https://mornigami.vercel.app (`origin/main` @ `4337d32`; local `main` is 6 commits ahead and unpushed, HEAD `21f43e8`)
 
 ---
 
@@ -21,8 +21,9 @@ The previous handoff was written before the redesign started. Since then the des
 | `b062d61` | skip link, `<main id="main">`, `text-foreground` → `text-text-primary` in `index.html` |
 | `1890cb2` + `04f7b5b` | accent picker moved into the account menu; sky palette (Dawn/Morning/Noon/Midnight); default accent is the opposite of the theme; retired pastels kept in data |
 | `4337d32` | Habits rewritten as ledger rows; Todo day groups lost their 2px cyan outline |
+| `21f43e8` | **Phase 2 finished** — `gainXP` now shows a receipt, `PageHeader` shared by three pages, Pomodoro and Todo rebuilt as ledgers, and three silent bugs fixed: task `completedAt`, bounty "today" from local parts, real consecutive streaks |
 
-**State of the rebuild:** `UI-ROADMAP.md` Phases 0 and 1 are done; Phase 2 is one page of three (Habits done, Todo partial, Pomodoro untouched).
+**State of the rebuild:** `UI-ROADMAP.md` Phases 0, 1 and 2 are done (Habits, Todo, Pomodoro all on the ledger). Phases 3–6 remain.
 
 **Visual truth is `DESIGN.md`, not "cream paper".** The world is: light slate page (`#F1F5F9`), white sheets on hairline borders, **ink** primary (`#0F172A` light / `#FFFFFF` dark) for type and checked creases, Fraunces display numerals, and one accent (`#2563EB` light default / `#FFFFFF` dark default) **reserved for button fills** — a heading or the wordmark must never take the accent. If a brief calls for warm paper, it conflicts with the shipped tokens; ask before changing.
 
@@ -32,7 +33,7 @@ The previous handoff was written before the redesign started. Since then the des
 
 The user's ask was to make Mornigami more attractive and engaging, then to execute the redesign roadmap in `UI-ROADMAP.md`. Live testing used the owner account (user: Bishr, L5) and the local demo harness; screenshots live in `.impeccable/shots/`.
 
-**The highest-leverage discovery from the first pass still stands:** the core daily loop is silent. Ticking a task or folding a habit awards XP but fires no toast, no animation, no `aria-live` announcement. That is one function.
+**The highest-leverage discovery from the first pass is now closed:** ticking a task or folding a habit awards XP *and* shows a receipt (`+30 XP · Task completed`). See A1.
 
 ---
 
@@ -41,7 +42,7 @@ The user's ask was to make Mornigami more attractive and engaging, then to execu
 Legend: **OPEN** · **PARTIAL** · **FIXED**
 
 ### A. Broken interactions & silent feedback (highest leverage)
-1. **`gainXP` drops the reason — OPEN.** `src/context/GamificationContext.tsx:46` declares `gainXP(amount, reason?)`; `:167` implements `(amount: number)` and never reads it. Callers pass `'Task Completed'` (`src/context/TasksContext.tsx:78`) and `'Habit Completed'` (`src/context/HabitsContext.tsx:123`). Fix in one place: `toast.success(...)` + a polite live region, with a guard so demo reseeding and admin batch writes don't storm.
+1. **`gainXP` drops the reason — FIXED** (`21f43e8`). `src/context/GamificationContext.tsx:168` now takes `(amount, reason?)` and fires one Sonner receipt — `+30 XP · Task completed` — for 2400 ms, unstyled so the celebration stays reserved for level-ups. Verified by state, not by eye: `localStorage.userXP` 2450 → 2480 and `[data-sonner-toast]` read `+30 XP · Task completed`. No storm: `seedDemoData` never calls `gainXP`, and the only non-click caller (`PomodoroContext.tsx:158-187`) runs once per finished session. *Not checked: whether Sonner's own live region actually announces on this version.*
 2. **Finance cycle floor — OPEN.** `src/context/FinanceContext.tsx:156` `const remainingDays = diffDays > 0 ? diffDays : 1;` pins an expired cycle at "1 days remaining" forever.
 3. **Home empty-state contradiction — FIXED** by the Home rewrite. `src/pages/Home.tsx:150` now branches on `tasks.length` ("Add your first task" vs "Everything is done") and the measure note reads "Nothing due today" (`:94`).
 4. **Demo vs authenticated dissonance — OPEN.** `src/main.tsx:10` seeds demo data; a fresh cloud account lands on an empty workspace with no onboarding.
@@ -52,13 +53,13 @@ Legend: **OPEN** · **PARTIAL** · **FIXED**
 3. **Payoff below the fold — OPEN** at ≤750px: bounties and the 7-day strip sit below the first viewport on Home.
 
 ### C. Design consistency debt
-1. **Card grids vs ledger — PARTIAL.** Home and Habits are ledger. Todo moved halfway (day groups are hairline sheets) but still has three shadowed stat cards, its own filter bar, and per-row tints (`bg-warning/5`, `bg-rose-500/5`). Pomodoro, Finance, Playlists, Store, Community, Settings and Admin are untouched `Card` grids.
+1. **Card grids vs ledger — PARTIAL.** Home, Habits, Todo and Pomodoro are ledger. Finance, Playlists, Store, Community, Settings and Admin are untouched `Card` grids.
 2. **"Blue #2563eb buttons" — NOT A BUG.** The accent is *supposed* to be the button fill; light theme's default accent is `#2563EB` by the owner's instruction. What was wrong was the accent painting type; that is fixed. Do not convert buttons to ink.
-3. **Banned patterns — OPEN.** Gradients at `src/pages/Todo.tsx:283` and `src/pages/Store.tsx:228` (line numbers drift — grep `bg-gradient`), ALL-CAPS eyebrows in Playlists/Store, emoji as functional icons (Finance categories, Admin delete).
+3. **Banned patterns — PARTIAL.** The Todo gradient is gone with its stat cards; `src/pages/Store.tsx:228` still has one (line numbers drift — grep `bg-gradient`). ALL-CAPS eyebrows in Playlists/Store and emoji as functional icons (Finance categories, Admin delete) remain.
 
 ### D. Accessibility & layout
-1. **Todo task tick — OPEN.** `src/pages/Todo.tsx:514-523` is still a 22px `<div onClick>` with no role, no key handling, no `aria-pressed`. `TaskTick` (`src/components/ui/TaskTick.tsx`) already does this correctly for Habits — reuse it.
-2. **Todo add-task button — PARTIAL.** It is a real `<button type="button" title="Add task">` (`src/pages/Todo.tsx:464-478`), but 32×32 (below the 44px touch floor) and named only by `title`. Give it `aria-label` and a larger hit area.
+1. **Todo task tick — FIXED** (`21f43e8`). The 22px `<div onClick>` is gone; every row uses `TaskTick` (44px, `aria-pressed`, keyboard reachable).
+2. **Todo add-task button — FIXED** (`21f43e8`). Each day sheet has an `h-11 w-11` button with `aria-label="Add a task for <date label>"`.
 3. **Audio player overlap — PARTIAL.** `src/components/layout/FocusAudioPlayer.tsx:25` is a collapsed 44px puck at `fixed bottom-20 right-3 md:bottom-4 md:right-4 z-40`. It still overlays the corner (a few characters of the last bounty row at 390px) but no longer covers rows.
 4. **MobileNav collision — not reproduced.** Bottom bar is `z-30` with `safe-area-pb` (`src/components/layout/MobileNav.tsx:104`); `MainLayout` main carries `pb-24 md:pb-8`. Reopen only if it is seen again.
 5. **Favicon bloat — OPEN.** `src/public/icon.png` is 443,844 bytes; target ~10 kB.
@@ -68,7 +69,7 @@ Legend: **OPEN** · **PARTIAL** · **FIXED**
 - Store purchase, badge/avatar/border equipping, accent switching.
 - Pomodoro countdown and controls.
 - Theme switching in both directions, including on `/login`.
-- **New invariants:** the accent fills buttons only; headings, numerals and the wordmark stay ink; sheets sit on hairlines with no shadow at rest.
+- **New invariants:** the accent fills buttons only; headings, numerals and the wordmark stay ink; sheets sit on hairlines with no shadow at rest; every XP award shows exactly one receipt, and the receipt sits below the 64px top bar (`offset={{ top: 76, right: 16 }}`).
 
 ---
 
@@ -93,10 +94,9 @@ Legend: **OPEN** · **PARTIAL** · **FIXED**
 
 ## 5. Next actions, in order
 
-1. **Silence (A1).** Implement the `gainXP` reason → toast + live region. One file, huge felt difference; guard against reseed storms.
-2. **Finish Phase 2.** Pomodoro is the big one: it should *be* the page — one Fraunces number, one primary control, today's sessions as creases, no decorative blur behind a card. Then Todo: replace the three shadowed stat cards and the filter bar with a ledger header, reuse `TaskTick`, and drop the per-row tints.
-3. **Cheap correctness.** Finance floor (A2), Todo tick semantics (D1), add-task label (D2), icon.png (D5).
-4. **Phases 3–6** of `UI-ROADMAP.md`: Finance + Playlists (money needs `Intl` formatting; Playlists' modal stack becomes a sheet), then Community/Store/Settings, then Admin + standalone windows + login parity, then states/motion/a11y/perf.
+1. **Cheap correctness.** Finance cycle floor (A2), `icon.png` (D5), and the demo-vs-authenticated first run (A4).
+2. **Phases 3–6** of `UI-ROADMAP.md`: Finance + Playlists (money needs `Intl` formatting; Playlists' modal stack becomes a sheet), then Community/Store/Settings, then Admin + standalone windows + login parity, then states/motion/a11y/perf.
+3. **Two open questions for the owner**, both raised by Phase 2: Zen mode's 60–72px numeral is a third numeral size and technically against `DESIGN.md` — keep it or drop it; and at 390 the shell wordmark truncates to "Morni…" (Phase 1 work, measured but not touched).
 
 ---
 
@@ -108,3 +108,6 @@ Legend: **OPEN** · **PARTIAL** · **FIXED**
 - **Vite dies on writes into `src/pages`** with `EBUSY: resource busy or locked` on the editor's `.tmpdir`; every edit round needs a server restart (`npx tsc --noEmit` first as a cheap gate).
 - **Dev preview harness:** `preview.html` + `src/preview.tsx` render any page with seeded demo data (`?p=home|habits|todo|pomodoro|finance|playlist|store|community|settings|admin&theme=light|dark`) on `npx vite --port 5210 --strictPort`. Neither file is imported by `index.html`, so nothing ships.
 - **`git push` prints progress on stderr**, so PowerShell reports exit 1 on success. Verify with `git fetch` + `git log origin/main`.
+- **The demo seed is version-blind.** `seedDemoData(force = false)` only fills empty keys, so a corrected seed never reaches a browser that already has data. Clear `localStorage`/`sessionStorage` and reload before verifying seed changes.
+- **`dayStr(offset)` in `demoData.ts` means offset days *ago*** — positive is the past. The demo tasks once passed negatives and landed in the future.
+- **A screenshot is a frame, not behaviour.** A ticked task appeared to survive the Pending filter; a DOM probe showed the filter had already dropped it. Probe state before filing a bug.
