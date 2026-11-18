@@ -294,7 +294,7 @@ export const Store: React.FC = () => {
 
         <TabsContent value="colors" className="mt-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {STORE_ITEMS.colors.map((item) => renderItemCard('colors', item))}
+            {STORE_ITEMS.colors.filter((item) => !item.retired).map((item) => renderItemCard('colors', item))}
           </div>
         </TabsContent>
 

@@ -41,9 +41,9 @@
     --color-text-secondary: 100 116 139;
     --color-text-tertiary: 148 163 184;
 
-    /* Accent (the store's pastel colours) tints buttons only, so ink stays legible.
-       ThemeContext overrides these when a colour is equipped. */
-    --color-accent: 15 23 42;
+    /* Accent fills buttons only, so ink stays legible. With nothing equipped the
+       default is the opposite of the theme: sky blue on white, white on ink. */
+    --color-accent: 37 99 235;
     --color-accent-contrast: 255 255 255;
 
     --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, Palette, LogIn, User as UserIcon, Shield, ShoppingBag, LogOut, Menu } from 'lucide-react';
+import { Sun, Moon, LogIn, User as UserIcon, Shield, ShoppingBag, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useGamification, STORE_ITEMS } from '@/context/GamificationContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -74,56 +74,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-3 justify-end shrink-0">
-        {/* 1. Accent Color Picker Dropdown (Desktop Only) */}
-        <div className="hidden md:flex">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-xl w-10 h-10 shrink-0 cursor-pointer transition-all duration-200 ease-out hover:bg-background hover:text-text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-                title="Change Accent Color"
-                aria-label="Change accent color"
-              >
-                <Palette className="w-4 h-4 text-text-secondary" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Accent Colors</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setAccentColor('')} className="flex items-center gap-2 cursor-pointer transition-colors duration-150 ease-out">
-                <span className="w-4 h-4 rounded-full border border-border bg-slate-900 dark:bg-white" />
-                <span>Theme Default</span>
-              </DropdownMenuItem>
-              {unlockedColorItems.length > 0 ? (
-                unlockedColorItems.map((color) => (
-                  <DropdownMenuItem
-                    key={color.id}
-                    onClick={() => setAccentColor(color.value)}
-                    className="flex items-center gap-2 cursor-pointer transition-colors duration-150 ease-out"
-                  >
-                    <span
-                      className="w-4 h-4 rounded-full border border-border"
-                      style={{ backgroundColor: color.value }}
-                    />
-                    <span>{color.name}</span>
-                    {accentColor === color.value && <span className="ml-auto text-xs text-primary font-bold">✓</span>}
-                  </DropdownMenuItem>
-                ))
-              ) : (
-                <DropdownMenuItem
-                  onClick={() => navigate('/store')}
-                  className="text-xs text-text-secondary cursor-pointer flex items-center gap-2 transition-colors duration-150 ease-out"
-                >
-                  <ShoppingBag className="w-3.5 h-3.5 text-text-secondary shrink-0" />
-                  <span>Unlock more in Store</span>
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* 2. Dark/Light Mode Toggle Button */}
+        {/* 1. Dark/Light Mode Toggle Button */}
         <Button
           variant="outline"
           size="icon"
@@ -263,6 +214,47 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
                   <span>Admin Panel</span>
                 </DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="pb-1.5 text-[11px] font-semibold text-text-secondary">
+                Button accent
+              </DropdownMenuLabel>
+              <div className="flex flex-wrap items-center gap-1.5 px-2 pb-2.5">
+                <button
+                  type="button"
+                  onClick={() => setAccentColor('')}
+                  className={`h-6 px-2 rounded-full border text-[11px] font-semibold cursor-pointer transition-colors duration-150 ease-out ${
+                    accentColor === ''
+                      ? 'border-text-primary text-text-primary'
+                      : 'border-border text-text-secondary hover:text-text-primary'
+                  }`}
+                  title="Follow the theme: blue in light, white in dark"
+                >
+                  Default
+                </button>
+                {unlockedColorItems.map((color) => (
+                  <button
+                    key={color.id}
+                    type="button"
+                    onClick={() => setAccentColor(color.value)}
+                    className={`w-6 h-6 rounded-full border cursor-pointer transition-transform duration-150 ease-out hover:scale-110 ${
+                      accentColor === color.value ? 'border-text-primary ring-2 ring-border' : 'border-border'
+                    }`}
+                    style={{ backgroundColor: color.value }}
+                    title={color.name}
+                    aria-label={color.name}
+                    aria-pressed={accentColor === color.value}
+                  />
+                ))}
+                {unlockedColorItems.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/store')}
+                    className="text-[11px] font-semibold text-text-secondary hover:text-text-primary cursor-pointer"
+                  >
+                    Unlock in Store
+                  </button>
+                )}
+              </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleSignOut}

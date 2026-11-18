@@ -12,10 +12,14 @@ export const STORE_ITEMS: {
   borders: StoreItem[];
 } = {
   colors: [
-    { id: 'color_sakura', name: 'Sakura Pink', value: '#FDA4AF', cost: 300, desc: 'Unlocks a pastel cherry blossom accent color.' },
-    { id: 'color_mint', name: 'Mint Sage', value: '#A7F3D0', cost: 300, desc: 'Unlocks a fresh minty green accent color.' },
-    { id: 'color_butter', name: 'Butter Cream', value: '#FDE68A', cost: 300, desc: 'Unlocks a warm, creamy morning yellow accent color.' },
-    { id: 'color_lavender', name: 'Lavender Mist', value: '#DDD6FE', cost: 300, desc: 'Unlocks a soothing lavender accent color.' },
+    { id: 'color_dawn', name: 'Dawn Sky', value: '#7DD3FC', cost: 300, desc: 'Unlocks a pale sky-blue accent for your buttons.' },
+    { id: 'color_morning', name: 'Morning Sky', value: '#38BDF8', cost: 300, desc: 'Unlocks a clear morning-sky accent for your buttons.' },
+    { id: 'color_noon', name: 'Noon Sky', value: '#3B82F6', cost: 300, desc: 'Unlocks a bright noon-blue accent for your buttons.' },
+    { id: 'color_midnight', name: 'Midnight Blue', value: '#1D4ED8', cost: 300, desc: 'Unlocks a deep midnight-blue accent for your buttons.' },
+    { id: 'color_sakura', name: 'Sakura Pink', value: '#FDA4AF', cost: 300, desc: 'Retired pastel.', retired: true },
+    { id: 'color_mint', name: 'Mint Sage', value: '#A7F3D0', cost: 300, desc: 'Retired pastel.', retired: true },
+    { id: 'color_butter', name: 'Butter Cream', value: '#FDE68A', cost: 300, desc: 'Retired pastel.', retired: true },
+    { id: 'color_lavender', name: 'Lavender Mist', value: '#DDD6FE', cost: 300, desc: 'Retired pastel.', retired: true },
   ],
   avatars: [
     { id: 'avatar_fox', name: 'Origami Fox', value: '🦊', cost: 500, desc: 'Set foxy origami as your profile avatar.' },

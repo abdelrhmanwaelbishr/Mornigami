@@ -141,6 +141,8 @@ export interface StoreItem {
   value: string;
   cost: number;
   desc: string;
+  /** Sold no longer, but kept so past purchases still show in the accent picker. */
+  retired?: boolean;
 }
 
 export interface UnlockedItems {

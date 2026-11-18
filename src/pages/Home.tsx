@@ -210,7 +210,7 @@ export const Home: React.FC = () => {
               <li key={bounty.id} className="px-4 py-3.5 sm:px-5">
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="min-w-0 flex-1 text-sm font-semibold text-text-primary">{bounty.title}</p>
-                  <span className="shrink-0 text-xs font-bold text-warning-ink tabular-nums">+{bounty.xp} XP</span>
+                  <span className="shrink-0 text-xs font-bold text-success-ink tabular-nums">+{bounty.xp} XP</span>
                 </div>
                 <p className="mt-0.5 text-xs text-text-secondary">{bounty.desc}</p>
 
