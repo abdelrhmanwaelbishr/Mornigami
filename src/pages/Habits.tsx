@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useHabits } from '@/context/HabitsContext';
 import { Button } from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Sheet } from '@/components/ui/Sheet';
+import { SheetHeading } from '@/components/ui/SheetHeading';
+import { TaskTick } from '@/components/ui/TaskTick';
 import {
   Dialog,
   DialogContent,
@@ -10,10 +12,17 @@ import {
   DialogDescription,
 } from '@/components/ui/Dialog';
 import { Input } from '@/components/ui/Input';
-import { Plus, Check, Flame, Trash2, Edit2, Calendar, Sprout } from 'lucide-react';
+import { Plus, Flame, Trash2, Edit2, Sprout } from 'lucide-react';
 import type { Habit } from '@/types';
 import { useConfirm } from '@/context/ConfirmContext';
 import { cn } from '@/lib/utils';
+
+const UNIT_LABEL: Record<Habit['durationUnit'], string> = {
+  mins: 'min',
+  hours: 'hr',
+  times: 'times',
+  pages: 'pages',
+};
 
 export const Habits: React.FC = () => {
   const {
@@ -98,13 +107,14 @@ export const Habits: React.FC = () => {
   const filteredHabits = habits.filter((h) =>
     selectedCategory === 'All' ? true : h.category === selectedCategory
   );
+  const foldedToday = filteredHabits.filter(isHabitCompletedToday).length;
 
   return (
     <div className="space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-black text-primary">
+          <h1 className="font-display text-3xl font-black text-text-primary">
             Habit Tracker
           </h1>
           <p className="text-sm font-medium text-text-secondary mt-1">
@@ -136,98 +146,74 @@ export const Habits: React.FC = () => {
         ))}
       </div>
 
-      {/* Habits Grid */}
       {filteredHabits.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredHabits.map((habit) => {
-            const completed = isHabitCompletedToday(habit);
+        <Sheet>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4 sm:px-5">
+            <SheetHeading id="habits-heading" note={`${foldedToday} of ${filteredHabits.length} folded`}>
+              Today
+            </SheetHeading>
+          </div>
+          <ul className="divide-y divide-border">
+            {filteredHabits.map((habit) => {
+              const completed = isHabitCompletedToday(habit);
+              const streak = habit.currentStreak || 0;
 
-            return (
-              <Card
-                key={habit.id}
-                className={cn(
-                  'flex flex-col justify-between transition-all duration-200 border-2',
-                  completed
-                    ? 'border-success/40 bg-success/5 shadow-xs'
-                    : 'border-border bg-surface hover:border-primary/40'
-                )}
-              >
-                <CardHeader className="p-5 pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-background border border-border text-text-secondary">
-                        {habit.category}
-                      </span>
-                      <CardTitle className="text-base font-bold text-text-primary mt-1">
-                        {habit.title}
-                      </CardTitle>
-                    </div>
+              return (
+                <li key={habit.id} className="flex items-center gap-3 px-4 py-2.5 sm:px-5">
+                  <TaskTick
+                    done={completed}
+                    onToggle={() => toggleHabitToday(habit.id)}
+                    label={`${completed ? 'Undo' : 'Mark'} ${habit.title} for today`}
+                  />
 
-                    {/* Streak Badge */}
-                    <div
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-warning/15 text-warning font-black text-xs shrink-0"
-                      title={`${habit.currentStreak || 0} days streak`}
-                    >
-                      <Flame className="w-3.5 h-3.5 fill-current" />
-                      <span>{habit.currentStreak || 0}d</span>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-text-secondary mt-2 flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-text-tertiary" />
-                    <span>Goal: {habit.durationValue} {habit.durationUnit} / day</span>
-                  </p>
-                </CardHeader>
-
-                <CardContent className="p-5 pt-0 space-y-4">
-                  {/* Days of week active indicators */}
-                  <div className="flex items-center justify-between gap-1 pt-2 border-t border-border/50">
-                    {dayLabels.map((day, idx) => {
-                      const isActiveDay = Array.isArray(habit.targetDays) && habit.targetDays.includes(idx);
-                      return (
-                        <div
-                          key={idx}
-                          className={cn(
-                            'w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold',
-                            isActiveDay
-                              ? 'bg-primary/10 text-primary font-black'
-                              : 'text-text-tertiary opacity-40'
-                          )}
-                        >
-                          {day}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Actions & Complete Button */}
-                  <div className="flex items-center gap-2 pt-1">
-                    <Button
-                      onClick={() => toggleHabitToday(habit.id)}
+                  <div className="min-w-0 flex-1">
+                    <p
                       className={cn(
-                        'flex-1 h-10 font-bold gap-2 text-xs transition-all',
-                        completed
-                          ? 'bg-success text-white hover:bg-success/90'
-                          : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        'truncate text-sm font-semibold transition-colors duration-200',
+                        completed ? 'text-text-secondary' : 'text-text-primary'
                       )}
                     >
-                      <Check className="w-4 h-4" />
-                      <span>{completed ? 'Completed Today! (+50 XP)' : 'Mark Completed'}</span>
-                    </Button>
+                      {habit.title}
+                    </p>
+                    <p className="truncate text-xs text-text-secondary">
+                      {habit.category} · {habit.durationValue} {UNIT_LABEL[habit.durationUnit]} a day
+                    </p>
+                  </div>
 
-                    <Button
-                      variant="ghost"
-                      size="icon"
+                  <div className="hidden shrink-0 items-center gap-1 sm:flex" aria-hidden="true">
+                    {dayLabels.map((day, idx) => (
+                      <span
+                        key={`${habit.id}-${idx}`}
+                        title={`Targets ${day}`}
+                        className={cn(
+                          'h-1.5 w-3 rounded-[1px]',
+                          Array.isArray(habit.targetDays) && habit.targetDays.includes(idx)
+                            ? 'bg-text-tertiary'
+                            : 'bg-border'
+                        )}
+                      />
+                    ))}
+                  </div>
+
+                  {streak > 0 && (
+                    <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-warning-ink tabular-nums">
+                      <Flame className="h-3.5 w-3.5" aria-hidden="true" />
+                      {streak}d
+                    </span>
+                  )}
+
+                  <div className="flex shrink-0 items-center">
+                    <button
+                      type="button"
                       onClick={() => openEditModal(habit)}
-                      className="w-10 h-10 rounded-xl"
-                      title="Edit Habit"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-colors duration-200 hover:bg-background hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer"
+                      title="Edit habit"
+                      aria-label={`Edit ${habit.title}`}
                     >
-                      <Edit2 className="w-4 h-4 text-text-secondary" />
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
+                      <Edit2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={async () => {
                         const ok = await confirm({
                           title: 'Delete Habit',
@@ -239,30 +225,32 @@ export const Habits: React.FC = () => {
                           deleteHabit(habit.id);
                         }
                       }}
-                      className="w-10 h-10 rounded-xl text-danger hover:bg-danger-bg hover:text-danger"
-                      title="Delete Habit"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-colors duration-200 hover:bg-danger-bg hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer"
+                      title="Delete habit"
+                      aria-label={`Delete ${habit.title}`}
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                </li>
+              );
+            })}
+          </ul>
+        </Sheet>
       ) : (
-        <Card className="p-12 text-center border-dashed">
-          <div className="mb-3 flex justify-center text-success"><Sprout className="h-9 w-9" aria-hidden="true" /></div>
-          <h3 className="font-display text-lg font-bold text-text-primary">
-            No habits in this category yet
-          </h3>
-          <p className="text-xs text-text-secondary max-w-sm mx-auto mt-1 mb-5">
-            Fold your very first habit to start stacking daily consistency streaks and leveling up!
+        <Sheet className="px-6 py-14 text-center">
+          <Sprout className="mx-auto h-9 w-9 text-text-tertiary" aria-hidden="true" />
+          <h2 className="mt-4 font-display text-lg font-bold text-text-primary">
+            {habits.length === 0 ? 'No habits folded yet' : 'Nothing in this category'}
+          </h2>
+          <p className="mx-auto mt-1 max-w-sm text-xs text-text-secondary">
+            Fold your first habit and it appears here every morning it is due.
           </p>
-          <Button onClick={openCreateModal} className="font-bold text-xs">
-            Create Habit Fold
+          <Button onClick={openCreateModal} className="mt-5 h-10 px-4 text-xs font-bold">
+            <Plus className="w-4 h-4" />
+            <span>New Habit Fold</span>
           </Button>
-        </Card>
+        </Sheet>
       )}
 
       {/* Habit Create / Edit Modal */}
@@ -342,8 +330,8 @@ export const Habits: React.FC = () => {
                 <label className="text-xs font-bold text-text-secondary">Unit</label>
                 <select
                   value={durationUnit}
-                  onChange={(e) => setDurationUnit(e.target.value as any)}
-                className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm text-text-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  onChange={(e) => setDurationUnit(e.target.value as Habit['durationUnit'])}
+                  className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm text-text-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
                   <option value="mins">Minutes</option>
                   <option value="hours">Hours</option>
@@ -362,4 +350,3 @@ export const Habits: React.FC = () => {
     </div>
   );
 };
-

@@ -426,7 +426,6 @@ export const Todo: React.FC = () => {
             )}
           >
             {groupedTasks.map((group) => {
-              const isToday = group.date.getTime() === todayZero.getTime();
               const isOverdue =
                 group.date < todayZero && group.tasks.some((t) => !t.completed);
               const isDropTarget = dragOverDate === group.dateKey;
@@ -435,12 +434,8 @@ export const Todo: React.FC = () => {
                 <div
                   key={group.dateKey}
                   className={cn(
-                    'bg-surface rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 border',
-                    isOverdue
-                      ? 'border-2 border-danger'
-                      : isToday
-                      ? 'border-2 border-secondary'
-                      : 'border-border-light'
+                    'bg-surface rounded-2xl overflow-hidden transition-colors duration-200 border',
+                    isOverdue ? 'border-danger' : 'border-border'
                   )}
                   onDragOver={(e) => handleDragOver(e, group.dateKey)}
                   onDrop={(e) => handleDrop(e, group.dateKey)}
@@ -449,22 +444,14 @@ export const Todo: React.FC = () => {
                   <div
                     className={cn(
                       'px-5 py-4 border-b border-border flex items-center justify-between',
-                      isOverdue
-                        ? 'bg-danger/10'
-                        : isToday
-                        ? 'bg-secondary/10'
-                        : 'bg-background'
+                      isOverdue ? 'bg-danger-bg' : 'bg-background'
                     )}
                   >
                     <div className="flex flex-col">
                       <h3
                         className={cn(
                           'font-display text-base sm:text-lg font-bold leading-tight',
-                          isOverdue
-                            ? 'text-danger'
-                            : isToday
-                            ? 'text-secondary'
-                            : 'text-text-primary'
+                          isOverdue ? 'text-danger-ink' : 'text-text-primary'
                         )}
                       >
                         {getDateLabel(group.date)}
