@@ -112,6 +112,42 @@ html .auth-page ::selection {
   color: var(--auth-ink);
 }
 
+/* Masthead: identity left, the one utility right. The 44px row height keeps the
+   toggle's hit area without inflating the wordmark's line box. */
+.auth-page .auth-masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+}
+
+.auth-page .auth-theme-toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--auth-border);
+  border-radius: 12px;
+  background-color: var(--auth-surface);
+  color: var(--auth-subtle);
+  cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.auth-page .auth-theme-toggle:hover {
+  background-color: var(--auth-hover-surface);
+  border-color: var(--auth-border-strong);
+  color: var(--auth-link);
+}
+
+.auth-page .auth-theme-toggle:active {
+  background-color: var(--auth-active-surface);
+}
+
 .auth-page .auth-title {
   font-family: 'Fraunces', serif;
   font-size: 32px;

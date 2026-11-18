@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { readAuthError, googleAuthErrorMessage, signInErrorMessage } from '@/lib/authErrors';
-import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, Moon, Sun } from 'lucide-react';
 import '@/styles/login.css';
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
@@ -41,6 +42,7 @@ const GoogleMark: React.FC = () => (
 export const Login: React.FC = () => {
   const { user, loading, signIn, signUp, signInWithGoogle, resetPassword, startupAuthError, clearStartupAuthError } =
     useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -292,7 +294,22 @@ export const Login: React.FC = () => {
   return (
     <div className="auth-page flex flex-col items-center justify-center px-5 py-10 sm:px-8 sm:py-16">
       <div className="auth-column w-full max-w-[380px]">
-        <div className="auth-wordmark">Mornigami</div>
+        <div className="auth-masthead">
+          <div className="auth-wordmark">Mornigami</div>
+          <button
+            type="button"
+            className="auth-theme-toggle"
+            onClick={toggleTheme}
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-[18px] w-[18px]" aria-hidden="true" />
+            ) : (
+              <Moon className="h-[18px] w-[18px]" aria-hidden="true" />
+            )}
+          </button>
+        </div>
 
         <h1 className="auth-title mt-10">{heading}</h1>
         <p className="auth-subtitle mt-2.5">{subtitle}</p>
