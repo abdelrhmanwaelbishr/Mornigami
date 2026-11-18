@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   ListTodo,
@@ -79,21 +79,21 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     { to: '/finance', label: 'Finance', icon: CircleDollarSign },
   ];
 
-  // Full drawer navigation list
+  // Full drawer navigation list — same order and wording as the desktop sidebar
   const drawerLinks = [
-    { to: '/', label: 'Home Dashboard', icon: Home },
+    { to: '/', label: 'Home', icon: Home },
+    { to: '/habits', label: 'Habits', icon: Activity },
     { to: '/todo', label: 'To-Do List', icon: ListTodo },
-    { to: '/pomodoro', label: 'Pomodoro Timer', icon: Timer },
-    { to: '/habits', label: 'Habits Tracker', icon: Activity },
-    { to: '/finance', label: 'Finance Hub', icon: CircleDollarSign },
-    { to: '/playlist', label: 'Playlists Tracker', icon: Music },
-    { to: '/community', label: 'Community Hub', icon: Users },
+    { to: '/pomodoro', label: 'Pomodoro', icon: Timer },
+    { to: '/finance', label: 'Finance', icon: CircleDollarSign },
+    { to: '/playlist', label: 'Playlist', icon: Music },
+    { to: '/community', label: 'Community', icon: Users },
     { to: '/store', label: 'Rewards Store', icon: ShoppingBag },
     { to: '/settings', label: 'Settings', icon: Settings },
   ];
 
   if (userRole === 'admin') {
-    drawerLinks.push({ to: '/admin', label: 'Admin Dashboard', icon: Shield });
+    drawerLinks.push({ to: '/admin', label: 'Admin', icon: Shield });
   }
 
   return (
@@ -113,15 +113,15 @@ export const MobileNav: React.FC<MobileNavProps> = ({
               className={cn(
                 'flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl cursor-pointer transition-all duration-200 ease-out active:scale-95 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface group',
                 isActive
-                  ? 'text-primary font-bold'
+                  ? 'text-text-primary font-semibold'
                   : 'text-text-secondary hover:text-text-primary'
               )}
             >
               <div
                 className={cn(
-                  'w-9 h-7 flex items-center justify-center rounded-lg transition-all duration-200 ease-out',
+                  'w-9 h-7 flex items-center justify-center rounded-lg transition-colors duration-200 ease-out',
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    ? 'bg-background text-text-primary'
                     : 'text-text-secondary group-hover:text-text-primary group-hover:bg-background'
                 )}
               >
@@ -134,8 +134,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({
               </div>
               <span
                 className={cn(
-                  'text-[10px] mt-0.5 tracking-tight leading-none transition-colors duration-200',
-                  isActive ? 'font-bold text-primary' : 'font-medium text-text-secondary'
+                  'text-[11px] mt-0.5 tracking-tight leading-none transition-colors duration-200',
+                  isActive ? 'font-semibold text-text-primary' : 'font-medium text-text-secondary'
                 )}
               >
                 {tab.label}
@@ -151,16 +151,16 @@ export const MobileNav: React.FC<MobileNavProps> = ({
           className={cn(
             'flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl cursor-pointer transition-all duration-200 ease-out active:scale-95 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface group',
             isOpen
-              ? 'text-primary font-bold'
+              ? 'text-text-primary font-semibold'
               : 'text-text-secondary hover:text-text-primary'
           )}
           aria-label="Open full menu"
         >
           <div
             className={cn(
-              'w-9 h-7 flex items-center justify-center rounded-lg transition-all duration-200 ease-out',
+              'w-9 h-7 flex items-center justify-center rounded-lg transition-colors duration-200 ease-out',
               isOpen
-                ? 'bg-primary text-primary-foreground shadow-xs'
+                ? 'bg-background text-text-primary'
                 : 'text-text-secondary group-hover:text-text-primary group-hover:bg-background'
             )}
           >
@@ -173,8 +173,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({
           </div>
           <span
             className={cn(
-              'text-[10px] mt-0.5 tracking-tight leading-none transition-colors duration-200',
-              isOpen ? 'font-bold text-primary' : 'font-medium text-text-secondary'
+              'text-[11px] mt-0.5 tracking-tight leading-none transition-colors duration-200',
+              isOpen ? 'font-semibold text-text-primary' : 'font-medium text-text-secondary'
             )}
           >
             Menu
@@ -207,10 +207,10 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                   className="w-8 h-8 object-contain rounded-xl shrink-0"
                 />
                 <div className="flex flex-col leading-tight">
-                  <span className="font-display font-black text-lg tracking-tight text-primary">
+                  <span className="font-display font-black text-lg tracking-tight text-text-primary">
                     Mornigami
                   </span>
-                  <span className="text-[9px] font-semibold text-text-secondary uppercase tracking-wider">
+                  <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">
                     Shape your morning
                   </span>
                 </div>
@@ -243,12 +243,12 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                     Level {safeLevel} Achiever
                   </span>
                 </div>
-                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                <span className="text-[11px] font-semibold text-text-primary bg-primary/10 px-2 py-0.5 rounded-full tabular-nums">
                   {safeProgress}%
                 </span>
               </div>
               <Progress value={safeProgress} className="h-1.5 motion-reduce:[&>div]:transition-none" />
-              <div className="flex justify-between text-[10px] text-text-secondary font-medium">
+              <div className="flex justify-between text-[11px] text-text-secondary font-medium tabular-nums">
                 <span>{safeXP} XP</span>
                 <span>{safeXPNeeded} XP Needed</span>
               </div>
@@ -267,7 +267,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                     className={cn(
                       'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm cursor-pointer transition-all duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
                       isActive
-                        ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                        ? 'bg-background text-text-primary font-semibold'
                         : 'text-text-secondary font-medium hover:bg-background hover:text-text-primary'
                     )}
                   >
