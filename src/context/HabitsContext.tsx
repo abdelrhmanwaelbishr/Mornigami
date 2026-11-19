@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import { useGamification } from './GamificationContext';
 import { loadLocalData, saveLocalData } from '@/lib/storage';
 import type { Habit } from '@/types';
+import { toast } from 'sonner';
 
 interface HabitsContextType {
   habits: Habit[];
@@ -116,6 +117,7 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const toggleHabitToday = (id: string): boolean => {
     const today = getTodayDateStr();
     let completedNow = false;
+    let alreadyRewarded = false;
 
     const updated = habits.map((habit) => {
       if (habit.id !== id) return habit;
@@ -130,11 +132,14 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } else {
         newCompletedDates.push(today);
         completedNow = true;
+        alreadyRewarded = habit.lastRewardedDate === today;
       }
 
       return {
         ...habit,
         completedDates: newCompletedDates,
+        // Once a day's XP is paid, un-ticking must not arm it again.
+        lastRewardedDate: completedNow ? today : habit.lastRewardedDate,
         currentStreak: computeStreak(newCompletedDates),
         lastCompletedDate: completedNow ? today : habit.lastCompletedDate,
       };
@@ -143,7 +148,8 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     saveHabits(updated);
 
     if (completedNow) {
-      gainXP(50, 'Habit Completed');
+      if (!alreadyRewarded) gainXP(50, 'Habit Completed');
+      else toast.success("You've already claimed today's XP!");
     }
 
     return completedNow;

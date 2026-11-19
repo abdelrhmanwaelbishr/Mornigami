@@ -41,6 +41,8 @@ export interface Habit {
   currentStreak: number;
   completedDates: string[]; // YYYY-MM-DD
   lastCompletedDate?: string;
+  /** Last day this habit paid its XP, so un-ticking cannot pay the same day twice. */
+  lastRewardedDate?: string;
   createdAt: string;
 }
 
