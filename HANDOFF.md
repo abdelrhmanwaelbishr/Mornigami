@@ -1,9 +1,9 @@
 # Mornigami Handoff & Session State
 
-**Last updated:** 2026-11-18 (third session — Phase 2 finished)
+**Last updated:** 2026-11-19 (fourth session — five owner defects, XP/Points split, delegated review)
 **Repository:** `D:/Programming/Mornigami Files/Mornigami`
 **Working Stack:** React 18, TypeScript, Vite 5, Tailwind CSS, Firebase (Auth + Firestore), Sonner (Toasts), Canvas-Confetti
-**Deployed:** https://mornigami.vercel.app (`origin/main` @ `4337d32`; local `main` is 6 commits ahead and unpushed, HEAD `21f43e8`)
+**Deployed:** https://mornigami.vercel.app (`origin/main` @ `ae4fcc7`; local `main` is 5 commits ahead and unpushed, HEAD `e4ee7ea`)
 
 ---
 
@@ -23,8 +23,12 @@ The previous handoff was written before the redesign started. Since then the des
 | `4337d32` | Habits rewritten as ledger rows; Todo day groups lost their 2px cyan outline |
 | `21f43e8` | **Phase 2 finished** — `gainXP` now shows a receipt, `PageHeader` shared by three pages, Pomodoro and Todo rebuilt as ledgers, and three silent bugs fixed: task `completedAt`, bounty "today" from local parts, real consecutive streaks |
 | `eac8302` | sidebar rebuilt as an index of hairline rows: brand row is exactly the top bar's 64px, rows are 44px full-bleed lines, pills/scale motion/uppercase strapline gone, wordmark marks the home route |
+| `5b35b3b` | habits pay +50 XP once per day; a re-tick says "You've already claimed today's XP!" instead of paying again |
+| `e4ee7ea` | five owner-reported defects — finance cycle rolls, priority chip readable, friends show names not uids, "Rewards Store" → "Store", and XP split from the new **Points** currency |
 
 **State of the rebuild:** `UI-ROADMAP.md` Phases 0, 1 and 2 are done (Habits, Todo, Pomodoro all on the ledger). Phases 3–6 remain.
+
+**The economy changed shape on 2026-11-19.** XP is now level progress only and is never spent. A second currency, **Points**, is granted at 100 per level *gained* and is what the Store spends; prices stayed at 300 / 500 / 1000. If you touch anything that awards XP or prices an item, read §2.E first — the old `spentXP` bookkeeping is gone and a stray write to it now goes nowhere.
 
 **Visual truth is `DESIGN.md`, not "cream paper".** The world is: light slate page (`#F1F5F9`), white sheets on hairline borders, **ink** primary (`#0F172A` light / `#FFFFFF` dark) for type and checked creases, Fraunces display numerals, and one accent (`#2563EB` light default / `#FFFFFF` dark default) **reserved for button fills** — a heading or the wordmark must never take the accent. If a brief calls for warm paper, it conflicts with the shipped tokens; ask before changing.
 
@@ -44,7 +48,7 @@ Legend: **OPEN** · **PARTIAL** · **FIXED**
 
 ### A. Broken interactions & silent feedback (highest leverage)
 1. **`gainXP` drops the reason — FIXED** (`21f43e8`). `src/context/GamificationContext.tsx:168` now takes `(amount, reason?)` and fires one Sonner receipt — `+30 XP · Task completed` — for 2400 ms, unstyled so the celebration stays reserved for level-ups. Verified by state, not by eye: `localStorage.userXP` 2450 → 2480 and `[data-sonner-toast]` read `+30 XP · Task completed`. No storm: `seedDemoData` never calls `gainXP`, and the only non-click caller (`PomodoroContext.tsx:158-187`) runs once per finished session. *Not checked: whether Sonner's own live region actually announces on this version.*
-2. **Finance cycle floor — OPEN.** `src/context/FinanceContext.tsx:156` `const remainingDays = diffDays > 0 ? diffDays : 1;` pins an expired cycle at "1 days remaining" forever.
+2. **Finance cycle floor — FIXED** (`e4ee7ea`). `getCycleDetails` recomputed the period once and then clamped an expired one to `1`. It now rolls the cycle forward from the original start day (`addMonths` clamps the day, so a 31st start cannot become "February 31"). The owner's case — a 6 Sep cycle read on 19 Nov — now reads **Nov 6 - Dec 6 · 17 days remaining**. Proved by a 13-case table, not by eye.
 3. **Home empty-state contradiction — FIXED** by the Home rewrite. `src/pages/Home.tsx:150` now branches on `tasks.length` ("Add your first task" vs "Everything is done") and the measure note reads "Nothing due today" (`:94`).
 4. **Demo vs authenticated dissonance — OPEN.** `src/main.tsx:10` seeds demo data; a fresh cloud account lands on an empty workspace with no onboarding.
 
@@ -71,6 +75,8 @@ Legend: **OPEN** · **PARTIAL** · **FIXED**
 - Pomodoro countdown and controls.
 - Theme switching in both directions, including on `/login`.
 - **New invariants:** the accent fills buttons only; headings, numerals and the wordmark stay ink; sheets sit on hairlines with no shadow at rest; every XP award shows exactly one receipt, and the receipt sits below the 64px top bar (`offset={{ top: 76, right: 16 }}`); the sidebar's brand row is `h-16` so its hairline continues the top bar's, and nav rows are 44px lines on `divide-y`, not cards.
+- **Economy invariants (2026-11-19):** XP is level progress and is never deducted; only Points are spent, and only by `buyStoreItem`; Points are awarded per level *gained* (`POINTS_PER_LEVEL = 100` in `GamificationContext.tsx`), so a multi-level jump pays for each level; the levelling loop `while (currentXP >= currentLvl * 500)` is unchanged by design; a legacy account migrates `userXP` (which the old store had already reduced) into opening Points, and a `userDoc` with no `points` field is backfilled once. `spentXP` is dead — nothing reads or writes it.
+- **A user-facing identifier must never fall back to an id.** Community renders "Private folder" when a stored uid cannot be resolved; an id in a name slot reads as a bug even when the data is right.
 
 ---
 
@@ -95,9 +101,10 @@ Legend: **OPEN** · **PARTIAL** · **FIXED**
 
 ## 5. Next actions, in order
 
-1. **Cheap correctness.** Finance cycle floor (A2), `icon.png` (D5), and the demo-vs-authenticated first run (A4).
-2. **Phases 3–6** of `UI-ROADMAP.md`: Finance + Playlists (money needs `Intl` formatting; Playlists' modal stack becomes a sheet), then Community/Store/Settings, then Admin + standalone windows + login parity, then states/motion/a11y/perf.
-3. **Two open questions for the owner**, both raised by Phase 2: Zen mode's 60–72px numeral is a third numeral size and technically against `DESIGN.md` — keep it or drop it; and at 390 the shell wordmark truncates to "Morni…" (Phase 1 work, measured but not touched).
+1. **Task XP still farms.** `src/context/TasksContext.tsx` pays `+30 XP` on every untick/re-tick, exactly the loop that was fixed for habits in `5b35b3b`. Reported to the owner, deliberately not fixed. The fix is the habit one: a `lastRewardedDate` on `Task` plus the green "already claimed" toast. (`Habit.lastRewardedDate` in `src/types/index.ts` is the pattern to copy.)
+2. **Cheap correctness.** `icon.png` (D5), and the demo-vs-authenticated first run (A4).
+3. **Phases 3–6** of `UI-ROADMAP.md`: Finance + Playlists (money needs `Intl` formatting; Playlists' modal stack becomes a sheet), then Community/Store/Settings, then Admin + standalone windows + login parity, then states/motion/a11y/perf.
+4. **Two open questions for the owner**, both raised by Phase 2: Zen mode's 60–72px numeral is a third numeral size and technically against `DESIGN.md` — keep it or drop it; and at 390 the shell wordmark truncates to "Morni…" (Phase 1 work, measured but not touched).
 
 ---
 
@@ -112,3 +119,5 @@ Legend: **OPEN** · **PARTIAL** · **FIXED**
 - **The demo seed is version-blind.** `seedDemoData(force = false)` only fills empty keys, so a corrected seed never reaches a browser that already has data. Clear `localStorage`/`sessionStorage` and reload before verifying seed changes.
 - **`dayStr(offset)` in `demoData.ts` means offset days *ago*** — positive is the past. The demo tasks once passed negatives and landed in the future.
 - **A screenshot is a frame, not behaviour.** A ticked task appeared to survive the Pending filter; a DOM probe showed the filter had already dropped it. Probe state before filing a bug.
+- **The preview harness is signed in from IndexedDB.** A persisted Firebase session silently overwrites anything seeded into `localStorage`. Do `indexedDB.deleteDatabase("firebaseLocalStorageDb")` first, then seed, then reload.
+- **Delegate CLIs lie in different ways.** `agy` answers `--print "…"` correctly but its long relay runs stall for ~25 minutes on `connectex: An attempt was made to access a socket in a way forbidden by its access permissions` against `daily-cloudcode-pa.googleapis.com` and touch nothing — smoke-test with a real multi-minute task. Codex's `--read-only` sandbox is policy-blocked on Windows (every `git` call is `rejected: blocked by policy`) and it will honestly report it saw nothing — embed the `git diff` in the brief instead. `opencode` with `opencode/deepseek-v4.1-flash-free` worked first time on a two-file task.

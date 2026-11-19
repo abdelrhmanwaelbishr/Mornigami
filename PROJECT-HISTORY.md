@@ -188,7 +188,49 @@ The owner then asked for "one chat that has all the history", which became **thi
 
 ---
 
-## 6. Commit ledger
+## 6. Session 2026-11-19 — five owner-reported defects, the XP/Points split, and a delegated review
+
+**Goal that arrived**, as five numbered items over five screenshots, with the routing instruction *"DIVIDE THE TASKS TO AGY AND OPENCODE, AND THEN DELEGATE THE RESULT WITH CODEX THROUGH /codex-delegate."*
+
+1. Finance: *"September 6th to October 6th, October 6th has already passed long ago, and it's still stuck at 1 day remaining. fix that bug."*
+2. Todo: *"in the new task field, the priority choosing option color is glitched out."*
+3. Community: *"the active friends camp should show the username instead of showing the user ID."*
+4. Store: *"the name should be switched to 'Store'."*
+5. XP: *"the leveling system stays as it is, but instead of taking from the available leveling XP, no, what happens that at every level up, the user is granted 100 XP, THAT'S IT."*
+
+Item 5 was ambiguous between "100 XP per level" and "a second currency of 100 per level", so it was put back to the owner rather than guessed. The answer decided the whole shape of the change: **"XP is for levels, the store for example has it's own currency, with every level up, the user is granted 100 of that currency."** Asked to name it: **Points**. Asked whether store prices move: they stay at 300 / 500 / 1000.
+
+**What shipped — `e4ee7ea`, 12 files, +222/−120.**
+
+- **Finance (`src/context/FinanceContext.tsx`).** `getCycleDetails` recomputed the cycle from `startingDate` every call and then clamped the result: `remainingDays = diffDays > 0 ? diffDays : 1`. An expired cycle therefore reported "1 day remaining" forever. It now rolls: `monthsBetween` between start and today, decremented once when `addMonths(start, cycles)` still lands in the future, then `cycleStart = addMonths(start, cycles)` and `cycleEnd = addMonths(start, cycles + 1)`. A new module-level `addMonths` clamps the day to the target month's length, so a 31st start cannot become "February 31". The two early-return branches for a missing or unparseable date collapsed into one fallback (the 1st of this month). The owner's exact case, `2026-09-06` read on 2026-11-19, now reads **Nov 6 - Dec 6 · 17 days remaining**.
+- **Todo (`tailwind.config.js`).** The selected priority chip used `text-primary-contrast`, which is not a key on the `primary` colour object — Tailwind emitted nothing, so the text inherited page ink and went dark-on-dark. The CSS token `--color-primary-contrast` already existed; only the Tailwind mapping was missing. One key added, and the same class was silently broken at `src/pages/Pomodoro.tsx:306` and `src/context/ConfirmContext.tsx:107` — all three repaired without touching a page.
+- **Community (`src/pages/Community.tsx`).** `friendsList` is `string[]` and stored whatever was typed; a uid entry printed the uid. Added `resolveFriend` (exact uid, then case-insensitive displayName), a `friendNames` map filled by a bounded per-uid `getDoc` on `publicProfiles`, and `friendLabel`, which falls through to **"Private folder"** — a neutral word, not an id — when nothing resolves. The lookup is gated on `/^[A-Za-z0-9]{20,}$/` so a typed username is never mistaken for a document id, and capped at 25 entries.
+- **Store.** "Rewards Store" → "Store" in the sidebar, mobile nav and top bar. The page's own `<h1>` ("Fold Your Aesthetic") never said "Rewards Store", so it was left alone.
+- **XP / Points (`src/context/GamificationContext.tsx` and followers).** `POINTS_PER_LEVEL = 100`; `spentXP` state replaced by `points`; `gainXP` counts `levelsGained` instead of a boolean and awards `levelsGained * 100` Points, with its own toast (`+100 Points for reaching Level 13`) ahead of the existing modal and confetti; `buyStoreItem` gates and deducts on `points` and no longer writes `userXP`/`spentXP` at all. The levelling loop `while (currentXP >= currentLvl * 500)` was **not** touched — the owner said the levelling stays. `LevelUpModal` gained a bordered `+100 Points for the Store` line; `Store.tsx` relabelled every price, wallet and aria-label to Points; `Admin.tsx` swapped its `spendableXp` column for `points`; `demoData.ts` seeds `points: 650` instead of `spentXP: 1800`.
+
+**Delegation, and what it cost.** Items were split across `agy` (1+2) and `opencode` (3+4) per the owner's instruction, with `codex` reviewing the result. `opencode` (model `opencode/deepseek-v4.1-flash-free`) landed items 3 and 4 cleanly in one run. **`agy` never did any work**: its log repeated `dial tcp 172.217.119.4:443: connectex: An attempt was made to access a socket in a way forbidden by its access permissions` against `daily-cloudcode-pa.googleapis.com` for ~25 minutes with no files touched, so it was killed and items 1 and 2 were done inline. A later one-shot `agy --print "Reply with exactly: AGY-OK"` returned `AGY-OK` with exit 0, which is the trap: **the CLI answering a short prompt says nothing about whether a long relay run will work.** Smoke-test with a real multi-minute task, or don't dispatch.
+
+**The Codex review found two real data-loss bugs.** The first `--read-only` dispatch reviewed nothing at all — on Windows, Codex's read-only sandbox is policy-blocked and its `git status` / `git diff` calls are rejected (`Rejected("...powershell.exe -Command 'git status --short; git diff --' rejected: blocked by policy")`), so it honestly reported it could not see the changes. The retry embedded the full `git diff` (34 KB, 733 lines) in the brief, and that run produced a usable report:
+
+1. **The migration double-charged.** The first cut set opening Points to `userXP - spentXP`. But the old `buyStoreItem` had already done `nextXP = userXP - cost` *and* `nextSpent = spentXP + cost` — so subtracting `spentXP` charges every historical purchase a second time. A user who earned 3650 XP and bought 1200 of items would have been given **1250 Points instead of 2450**. Fixed: `userXP` alone *is* the unspent balance; the migration now reads it directly.
+2. **Firestore-only accounts got nothing.** Points initialised from localStorage only, and the sync effect skipped a `userDoc` with no `points` field — so an account whose legacy values were not in this browser opened at 0. Fixed: a `pointsBackfilled` ref writes the migrated balance back to Firestore once when the field is absent, so the next sync has a real number.
+3. Medium — the cycle clamp at 0 could still produce a range starting in the future for a `startingDate` later this month. Fixed by removing the clamp.
+4. Medium — uncapped `getDoc` per unresolved friend. Capped at 25 with a `shortcut:` comment.
+5. Low — malformed/negative stored Points. Clamped with `Math.max(0, ...)` in both the initialiser and the Firestore sync.
+
+**Verified by looking and by measuring.** `npx tsc --noEmit` clean (5 runs). Through `ego-browser`: Finance reads **Nov 6 - Dec 6 · 17 days remaining**; the selected priority chip measures `rgb(255,255,255)` on `rgb(15,23,42)`; the level-up path was driven for real (`userXP 5980 / userLevel 12 / points 50` → one tick → `xp 10, lvl 13, points 150`, toasts `+100 Points for reaching Level 13` and `+30 XP · Task completed`, modal showing `+100 Points for the Store`); the Store wallet reads `Available Points 150 Points` with no "XP" string anywhere on the page; a purchase moved `points 650 → 350` while `userXP` stayed `2450`; Community renders `Morning Light 🌅` / `Fold Master 🏆` and a forced uid renders `Private folder`, with `uidish: []` — no 20+ character id anywhere in the body text. No horizontal overflow at finance 1280/390, store 390 and 768-dark, community 390-dark.
+
+The migration arithmetic was proved separately rather than by clicking: a seven-case table (`fresh account`, `never bought`, `bought 1200 worth`, `spent everything`, `already migrated`, `malformed xp`, `negative stored points`) shows the old formula and the new one side by side — the fix is the difference on row 3, `1250` vs `2450`. The cycle maths was proved the same way, including `2026-01-31 @ 2026-03-01 -> Feb 28 - Mar 31`, `2026-11-25 @ 2026-11-19 -> Oct 25 - Nov 25` (a future start rolls back to the period holding today) and `2027-06-10 @ 2026-11-19 -> Nov 10 - Dec 10`.
+
+**Two harness gotchas that cost real time.** (1) `preview.html` is silently signed in from a persisted Firebase session in IndexedDB, so Firestore overwrites anything injected into `localStorage` — every seeded probe must first `indexedDB.deleteDatabase("firebaseLocalStorageDb")`. (2) The Todo priority chips only exist inside the New-task dialog, so a probe has to click "New task" before it can read them.
+
+**Not checked.** The real signed-in app against live Firestore (all verification ran on the preview harness and localStorage); Firefox and Safari; and whether an actual pre-existing Firestore account migrates correctly, since the backfill was reasoned about and unit-checked but never exercised against a real legacy document.
+
+**Risks for the next agent.** The `points` field is new: any code path that still writes `spentXP` will now be writing a field nothing reads. `Admin.tsx` writes `points` back, so a hand-edited balance is authoritative. `Task` untick/re-tick still pays +30 XP repeatedly — the same class of bug that was fixed for habits in `5b35b3b`, reported to the owner and left open deliberately.
+
+---
+
+## 7. Commit ledger
 
 | Commit | Intent |
 |---|---|
@@ -210,12 +252,14 @@ The owner then asked for "one chat that has all the history", which became **thi
 | `a9a6a7f` | docs(history): record live dynamic audit findings and silent XP loop discovery |
 | `21f43e8` | Phase 2 finished: XP receipt in `gainXP`, `PageHeader`, Pomodoro and Todo rebuilt, `completedAt` / local bounty day / real streak |
 | `eac8302` | sidebar as an index of hairline rows; brand row meets the top bar; preview harness honours the route |
+| `5b35b3b` | habits pay the +50 XP once per day, not once per tick — re-ticking says so instead of paying again |
+| `e4ee7ea` | five owner-reported defects: finance cycle rolls, priority chip readable, friends named not uid'd, "Store", and XP split from the new Points currency |
 
 *2026-11-18 evening: the `a9a6a7f` row above resolves to `4f1060d` in the current history — the docs commit was rewritten, so grep for its message, not its hash.*
 
 ---
 
-## 7. Decisions and why
+## 8. Decisions and why
 
 - **Channels over hex.** Only `rgb(var(--x) / <alpha-value>)` lets Tailwind attach alpha; hex silently deletes the class. Also: a token has two writers — the stylesheet and any inline `setProperty`.
 - **Accent is a separate token.** Using `--color-primary` for the accent meant an accent choice repainted all type. Ink stays ink; accent fills buttons.
@@ -224,19 +268,25 @@ The owner then asked for "one chat that has all the history", which became **thi
 - **Home has no workspace grid.** Duplicating the sidebar inside the page was the defect, not the fix.
 - **The preview harness is dev-only.** No demo login in production auth; nothing imports `preview.html`, so it cannot ship.
 - **No cream paper.** The world is slate page, white sheets, hairline borders, ink type, Fraunces numerals. A brief asking for warm paper conflicts with the tokens — ask first.
+- **XP measures progress; Points buy things.** Spending XP in the store meant a purchase could drop a user back a level, so the level number was not a record of work. Two currencies keep the level honest and give the store its own budget. Points are awarded per level *gained*, not per level reached, so a multi-level jump pays for each one.
+- **A uid is never a name.** Anything user-facing that could fall back to an identifier falls back to a neutral word instead ("Private folder"); an id in a name slot reads as a bug even when the data is right.
+- **A recurring period must be recomputed, never clamped.** Clamping an expired cycle to "1 day" hid the bug behind a plausible number for months. Rolling forward from the original anchor is the only version that stays true without stored state.
 
 ---
 
-## 8. Working notes
+## 9. Working notes
 
 - Vite dies on writes into `src/pages` (`EBUSY … .tmpdir`); restart the server each edit round, `npx tsc --noEmit` first.
 - Never round-trip non-ASCII files through `Set-Content` — it rewrote `UI-ROADMAP.md` as ANSI.
 - `git push` prints progress on stderr, so PowerShell reports exit 1 on success; verify with `git fetch` + `git log origin/main`.
 - Detector can only apply element rules to a *running page*; file scans miss those. The cmd wrapper drops `&theme=` from a URL argument — quote or escape it.
 - Screenshots referenced in earlier sessions live in `.impeccable/shots/` (72 files).
+- The dev preview harness is **silently signed in** from a persisted Firebase session in IndexedDB, so Firestore overwrites anything seeded into `localStorage`. Clear `indexedDB.deleteDatabase("firebaseLocalStorageDb")` first, then seed, then reload.
+- **`agy` fails on long runs.** Its relay log repeats `dial tcp … connectex: An attempt was made to access a socket in a way forbidden by its access permissions` against `daily-cloudcode-pa.googleapis.com` for ~25 minutes and touches nothing, while `agy --print "…"` still answers correctly. Smoke-test a delegate CLI with a real multi-minute task before trusting it with a brief.
+- **Codex's `--read-only` sandbox is policy-blocked on Windows** — every `git`/`Get-Content` shell call is rejected with `blocked by policy`, and it will honestly report it saw nothing. Embed the `git diff` in the brief instead; that run works.
 
 ---
 
-## 9. Maintenance
+## 10. Maintenance
 
 See **How to update this file** at the top — that section is the rule, this file is the memory.
