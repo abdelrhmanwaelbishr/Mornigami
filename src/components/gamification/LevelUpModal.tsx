@@ -8,8 +8,8 @@ import {
   DialogFooter,
 } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
-import { useGamification } from '@/context/GamificationContext';
-import { Trophy, Rocket } from 'lucide-react';
+import { useGamification, POINTS_PER_LEVEL } from '@/context/GamificationContext';
+import { Trophy, Rocket, Coins } from 'lucide-react';
 
 export const LevelUpModal: React.FC = () => {
   const { levelUpModalOpen, closeLevelUpModal, newLevelAchieved } = useGamification();
@@ -37,6 +37,13 @@ export const LevelUpModal: React.FC = () => {
           Your discipline and focus have elevated your discipline rank. Keep folding habits and
           conquering daily bounties!
         </p>
+
+        <div className="mb-2 flex items-center justify-center gap-2 rounded-lg border border-warning/40 bg-warning-bg px-3 py-2">
+          <Coins className="h-4 w-4 text-warning-ink" aria-hidden="true" />
+          <span className="text-sm font-bold text-text-primary tabular-nums">
+            +{POINTS_PER_LEVEL} Points for the Store
+          </span>
+        </div>
 
         <DialogFooter className="sm:justify-center">
           <Button

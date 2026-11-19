@@ -19,6 +19,8 @@ export default {
           light: 'rgb(var(--color-primary-light) / <alpha-value>)',
           dark: 'rgb(var(--color-primary-dark) / <alpha-value>)',
           foreground: 'rgb(var(--color-primary-contrast) / <alpha-value>)',
+          // Same token as `foreground`; `text-primary-contrast` is what the call sites use.
+          contrast: 'rgb(var(--color-primary-contrast) / <alpha-value>)',
         },
         secondary: {
           DEFAULT: 'rgb(var(--color-secondary) / <alpha-value>)',

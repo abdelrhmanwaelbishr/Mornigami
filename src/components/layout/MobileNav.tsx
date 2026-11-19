@@ -88,7 +88,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     { to: '/finance', label: 'Finance', icon: CircleDollarSign },
     { to: '/playlist', label: 'Playlist', icon: Music },
     { to: '/community', label: 'Community', icon: Users },
-    { to: '/store', label: 'Rewards Store', icon: ShoppingBag },
+    { to: '/store', label: 'Store', icon: ShoppingBag },
     { to: '/settings', label: 'Settings', icon: Settings },
   ];
 

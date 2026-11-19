@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
@@ -11,8 +11,7 @@ export const STORE_ITEMS: {
   colors: StoreItem[];
   avatars: StoreItem[];
   borders: StoreItem[];
-} = {
-  colors: [
+} = {  colors: [
     { id: 'color_dawn', name: 'Dawn Sky', value: '#7DD3FC', cost: 300, desc: 'Unlocks a pale sky-blue accent for your buttons.' },
     { id: 'color_morning', name: 'Morning Sky', value: '#38BDF8', cost: 300, desc: 'Unlocks a clear morning-sky accent for your buttons.' },
     { id: 'color_noon', name: 'Noon Sky', value: '#3B82F6', cost: 300, desc: 'Unlocks a bright noon-blue accent for your buttons.' },
@@ -35,10 +34,14 @@ export const STORE_ITEMS: {
   ],
 };
 
+/** Points paid into the store wallet for each level gained. */
+export const POINTS_PER_LEVEL = 100;
+
 interface GamificationContextType {
   userLevel: number;
   userXP: number;
-  spentXP: number;
+  /** Store currency. Earned at 100 per level-up; XP itself is only level progress. */
+  points: number;
   xpNeeded: number;
   progressPercent: number;
   unlockedItems: UnlockedItems;
@@ -65,8 +68,14 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [userXP, setUserXP] = useState<number>(() => {
     return parseInt(localStorage.getItem('userXP') || '0', 10);
   });
-  const [spentXP, setSpentXP] = useState<number>(() => {
-    return parseInt(localStorage.getItem('spentXP') || '0', 10);
+  const [points, setPoints] = useState<number>(() => {
+    const stored = localStorage.getItem('points');
+    if (stored !== null) return Math.max(0, parseInt(stored, 10) || 0);
+    // One-time migration: XP that had not been spent becomes the opening Points balance.
+    // The old store spent `userXP` directly and only mirrored the amount into `spentXP`,
+    // so `userXP` alone is the unspent balance — subtracting `spentXP` charges twice.
+    const xp = parseInt(localStorage.getItem('userXP') || '0', 10) || 0;
+    return Math.max(0, xp);
   });
   const [unlockedItems, setUnlockedItems] = useState<UnlockedItems>(() => {
     const loaded = loadLocalData<UnlockedItems>('unlockedItems', { colors: [], avatars: [], borders: [] });
@@ -85,6 +94,8 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const [levelUpModalOpen, setLevelUpModalOpen] = useState(false);
   const [newLevelAchieved, setNewLevelAchieved] = useState<number | null>(null);
+  // Guards the one-time backfill below so it cannot fire on every userDoc update.
+  const pointsBackfilled = useRef(false);
 
   // Publish the leaderboard-safe slice of this profile. Other people must be
   // able to see level/avatar without reading the private users/{uid} document,
@@ -125,10 +136,16 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setUserXP(xp);
         localStorage.setItem('userXP', xp.toString());
       }
-      if (userDoc.spentXP !== undefined && userDoc.spentXP !== null) {
-        const spent = Number(userDoc.spentXP) || 0;
-        setSpentXP(spent);
-        localStorage.setItem('spentXP', spent.toString());
+      if (userDoc.points !== undefined && userDoc.points !== null) {
+        const nextPoints = Math.max(0, Number(userDoc.points) || 0);
+        setPoints(nextPoints);
+        localStorage.setItem('points', nextPoints.toString());
+      } else if (!pointsBackfilled.current && user) {
+        // An account that predates Points has no field to read, and its browser may
+        // not hold the legacy values either. Write the migrated balance once so the
+        // next sync has a real number instead of re-deriving it from live XP.
+        pointsBackfilled.current = true;
+        saveLocalData('points', points, user.uid);
       }
       if (userDoc.unlockedItems) {
         const safeUnlocked: UnlockedItems = {
@@ -168,13 +185,16 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const gainXP = (amount: number, reason?: string) => {
     let currentXP = userXP + amount;
     let currentLvl = userLevel;
-    let leveledUp = false;
+    let levelsGained = 0;
 
+    // XP is level progress only: it is consumed by the level, never spent in the store.
     while (currentXP >= currentLvl * 500) {
       currentXP -= currentLvl * 500;
       currentLvl++;
-      leveledUp = true;
+      levelsGained++;
     }
+
+    const nextPoints = points + levelsGained * POINTS_PER_LEVEL;
 
     setUserXP(currentXP);
     setUserLevel(currentLvl);
@@ -187,13 +207,23 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       saveLocalData('userLevel', currentLvl, user.uid);
     }
 
+    if (levelsGained > 0) {
+      setPoints(nextPoints);
+      localStorage.setItem('points', nextPoints.toString());
+      if (user) saveLocalData('points', nextPoints, user.uid);
+    }
+
     // The receipt: every award says what it was for, so the economy is legible
     // from the page the action happened on. Level-ups keep their own celebration.
     if (reason) {
       toast(`+${amount} XP · ${reason}`, { duration: 2400 });
     }
 
-    if (leveledUp) {
+    if (levelsGained > 0) {
+      toast.success(
+        `+${levelsGained * POINTS_PER_LEVEL} Points for reaching Level ${currentLvl}`,
+        { duration: 3200 }
+      );
       setNewLevelAchieved(currentLvl);
       setLevelUpModalOpen(true);
       triggerConfetti();
@@ -201,18 +231,14 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const buyStoreItem = (category: 'colors' | 'avatars' | 'borders', item: StoreItem): boolean => {
-    if (userXP < item.cost) {
+    if (points < item.cost) {
       return false;
     }
 
-    // Deduct cost from XP, add to spentXP
-    const nextXP = userXP - item.cost;
-    const nextSpent = spentXP + item.cost;
-
-    setUserXP(nextXP);
-    setSpentXP(nextSpent);
-    localStorage.setItem('userXP', nextXP.toString());
-    localStorage.setItem('spentXP', nextSpent.toString());
+    const nextPoints = points - item.cost;
+    setPoints(nextPoints);
+    localStorage.setItem('points', nextPoints.toString());
+    if (user) saveLocalData('points', nextPoints, user.uid);
 
     const currentCategoryItems = Array.isArray(unlockedItems?.[category]) ? unlockedItems[category] : [];
     const updatedUnlocked: UnlockedItems = {
@@ -223,11 +249,6 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
     setUnlockedItems(updatedUnlocked);
     saveLocalData('unlockedItems', updatedUnlocked, user?.uid);
-
-    if (user) {
-      saveLocalData('userXP', nextXP, user.uid);
-      saveLocalData('spentXP', nextSpent, user.uid);
-    }
 
     // Automatically equip bought item
     if (category === 'colors') {
@@ -268,7 +289,7 @@ export const GamificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       value={{
         userLevel,
         userXP,
-        spentXP,
+        points,
         xpNeeded,
         progressPercent,
         unlockedItems,

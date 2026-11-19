@@ -377,7 +377,7 @@ const SEED: Record<string, SeedEntry> = {
   unlockedItems: { build: demoUnlockedItems, forceable: true },
   userLevel: { build: () => 12, forceable: true },
   userXP: { build: () => 2450, forceable: true },
-  spentXP: { build: () => 1800, forceable: true },
+  points: { build: () => 650, forceable: true },
   activeAvatar: { build: () => '🦊', forceable: true },
   activeBorder: { build: () => 'spark-border', forceable: true },
   friendsList: { build: demoFriends, forceable: true },

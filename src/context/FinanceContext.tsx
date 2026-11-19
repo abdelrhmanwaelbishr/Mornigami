@@ -10,6 +10,16 @@ interface CycleDetails {
   formattedRange: string;
 }
 
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+/** Add whole months, clamping the day so the 31st lands on the 28th/30th instead of overflowing. */
+const addMonths = (d: Date, months: number): Date => {
+  const year = d.getFullYear();
+  const month = d.getMonth() + months;
+  const day = Math.min(d.getDate(), new Date(year, month + 1, 0).getDate());
+  return new Date(year, month, day);
+};
+
 interface FinanceContextType {
   financeData: FinanceData;
   cycleDetails: CycleDetails;
@@ -125,38 +135,30 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const getCycleDetails = (data: FinanceData = financeData): CycleDetails => {
     const now = new Date();
-    if (!data?.startingDate) {
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      return {
-        cycleEndDate: lastDay,
-        remainingDays: Math.max(1, lastDay.getDate() - now.getDate() + 1),
-        formattedRange: now.toLocaleString('default', { month: 'long' }),
-      };
-    }
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    const startDate = new Date(data.startingDate);
-    if (isNaN(startDate.getTime())) {
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      return {
-        cycleEndDate: lastDay,
-        remainingDays: Math.max(1, lastDay.getDate() - now.getDate() + 1),
-        formattedRange: now.toLocaleString('default', { month: 'long' }),
-      };
-    }
-    startDate.setHours(0, 0, 0, 0);
+    // No usable start date means the cycle is simply the current calendar month.
+    const parsedStart = new Date(data?.startingDate || '');
+    const startDate = isNaN(parsedStart.getTime())
+      ? new Date(today.getFullYear(), today.getMonth(), 1)
+      : new Date(parsedStart.getFullYear(), parsedStart.getMonth(), parsedStart.getDate());
 
-    const cycleEndDate = new Date(startDate);
-    cycleEndDate.setMonth(cycleEndDate.getMonth() + 1);
+    // The cycle recurs monthly, so roll it forward until the period holds today.
+    // An expired cycle used to be clamped to "1 day remaining" forever. No clamp
+    // here either: a start date later this month must roll back to the period that
+    // contains today, or the range would begin in the future.
+    let cycles =
+      (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
+    if (addMonths(startDate, cycles).getTime() > today.getTime()) cycles -= 1;
 
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
+    const cycleStartDate = addMonths(startDate, cycles);
+    const cycleEndDate = addMonths(startDate, cycles + 1);
 
-    const diffTime = cycleEndDate.getTime() - currentDate.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const remainingDays = diffDays > 0 ? diffDays : 1;
+    // Local calendar days, not UTC milliseconds: a midnight boundary must not shift the count.
+    const remainingDays = Math.max(1, Math.round((cycleEndDate.getTime() - today.getTime()) / DAY_MS));
 
     const formatOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-    const formattedRange = `${startDate.toLocaleDateString('default', formatOpts)} - ${cycleEndDate.toLocaleDateString('default', formatOpts)}`;
+    const formattedRange = `${cycleStartDate.toLocaleDateString('default', formatOpts)} - ${cycleEndDate.toLocaleDateString('default', formatOpts)}`;
 
     return { cycleEndDate, remainingDays, formattedRange };
   };

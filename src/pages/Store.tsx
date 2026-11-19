@@ -32,7 +32,7 @@ const FOCUS_RING =
 
 export const Store: React.FC = () => {
   const {
-    userXP,
+    points,
     unlockedItems,
     activeAvatar,
     activeBorder,
@@ -60,8 +60,8 @@ export const Store: React.FC = () => {
         toast.success(`Equipped ${item.name} animated border!`);
       }
     } else {
-      if (userXP < item.cost) {
-        toast.error(`You need ${item.cost} XP to unlock this item. Complete habits, tasks, or pomodoros!`);
+      if (points < item.cost) {
+        toast.error(`You need ${item.cost} Points to unlock this item. Level up to earn more.`);
         return;
       }
       const ok = buyStoreItem(category, item);
@@ -73,7 +73,7 @@ export const Store: React.FC = () => {
 
   const renderItemCard = (category: 'colors' | 'avatars' | 'borders', item: StoreItem) => {
     const isUnlocked = unlockedItems?.[category]?.includes(item.value);
-    const canAfford = userXP >= item.cost;
+    const canAfford = points >= item.cost;
     let isEquipped = false;
     if (category === 'colors') isEquipped = accentColor === item.value;
     if (category === 'avatars') isEquipped = activeAvatar === item.value;
@@ -157,7 +157,7 @@ export const Store: React.FC = () => {
               <span className="inline-flex items-center gap-1 text-sm font-bold text-text-primary">
                 <Coins className="h-3.5 w-3.5 text-warning" aria-hidden="true" />
                 {item.cost.toLocaleString()}
-                <span className="text-xs font-semibold text-text-secondary">XP</span>
+                <span className="text-xs font-semibold text-text-secondary">Points</span>
               </span>
             </div>
           </div>
@@ -180,8 +180,8 @@ export const Store: React.FC = () => {
                 : isUnlocked
                 ? `Equip ${item.name}`
                 : canAfford
-                ? `Unlock ${item.name} for ${item.cost} XP`
-                : `${item.name} costs ${item.cost} XP, you need more XP`
+                ? `Unlock ${item.name} for ${item.cost} Points`
+                : `${item.name} costs ${item.cost} Points, you need more Points`
             }
             className={cn(
               'h-10 w-full gap-1.5 text-xs font-bold transition-all duration-150 ease-out active:scale-[0.98]',
@@ -208,12 +208,12 @@ export const Store: React.FC = () => {
             ) : canAfford ? (
               <>
                 <Unlock className="h-3.5 w-3.5 text-success" aria-hidden="true" />
-                <span>Unlock for {item.cost} XP</span>
+                <span>Unlock for {item.cost} Points</span>
               </>
             ) : (
               <>
                 <Lock className="h-3.5 w-3.5 text-warning" aria-hidden="true" />
-                <span>Need {item.cost} XP</span>
+                <span>Need {item.cost} Points</span>
               </>
             )}
           </Button>
@@ -235,20 +235,20 @@ export const Store: React.FC = () => {
             Fold Your Aesthetic
           </h1>
           <p className="max-w-md text-xs text-text-secondary">
-            Exchange your hard-earned XP progression points for sky-blue button accents,
-            origami avatars, and glowing badge animations.
+            Exchange the Points you earn at every level up for sky-blue button accents, origami
+            avatars, and glowing badge animations.
           </p>
         </div>
 
-        {/* User XP Vault Indicator */}
+        {/* Points wallet */}
         <div className="flex shrink-0 items-center gap-3 self-start rounded-2xl border-2 border-warning/40 bg-surface px-5 py-3 shadow-sm sm:self-auto">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/20">
             <Sparkles className="h-5 w-5 fill-warning text-warning" aria-hidden="true" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-text-secondary">Available XP</div>
+            <div className="text-xs font-semibold text-text-secondary">Available Points</div>
             <div className="font-display text-xl font-black text-text-primary">
-              {userXP.toLocaleString()} XP
+              {points.toLocaleString()} Points
             </div>
           </div>
         </div>

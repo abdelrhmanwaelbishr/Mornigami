@@ -52,7 +52,7 @@ interface UserRowState {
   role: 'admin' | 'user';
   userLevel: number;
   userXP: number;
-  spendableXp: number;
+  points: number;
   status: 'active' | 'suspended' | 'banned' | 'deleted';
 }
 
@@ -168,13 +168,11 @@ export const Admin: React.FC = () => {
       snap.forEach((d) => {
         const data = d.data() as UserDoc;
         list.push({ id: d.id, ...data });
-        const spent = data.spentXP || 0;
-        const total = data.userXP || 0;
         editsMap[d.id] = {
           role: data.role || 'user',
           userLevel: data.userLevel || 1,
-          userXP: total,
-          spendableXp: Math.max(0, total - spent),
+          userXP: data.userXP || 0,
+          points: data.points || 0,
           status: data.status || 'active',
         };
       });
@@ -391,7 +389,7 @@ export const Admin: React.FC = () => {
         role: 'user',
         userLevel: 1,
         userXP: 0,
-        spendableXp: 0,
+        points: 0,
         status: 'active',
       };
       return {
@@ -411,8 +409,7 @@ export const Admin: React.FC = () => {
 
     const safeLevel = Math.max(1, edit.userLevel);
     const safeXP = Math.max(0, edit.userXP);
-    const safeSpendable = Math.max(0, edit.spendableXp);
-    const newSpentXp = Math.max(0, safeXP - safeSpendable);
+    const safePoints = Math.max(0, edit.points);
 
     try {
       const userRef = doc(db, 'users', uid);
@@ -423,7 +420,7 @@ export const Admin: React.FC = () => {
           status: edit.status,
           userLevel: safeLevel,
           userXP: safeXP,
-          spentXP: newSpentXp,
+          points: safePoints,
         },
         { merge: true }
       );
@@ -432,7 +429,7 @@ export const Admin: React.FC = () => {
       if (user?.uid === uid) {
         localStorage.setItem('userLevel', safeLevel.toString());
         localStorage.setItem('userXP', safeXP.toString());
-        localStorage.setItem('spentXP', newSpentXp.toString());
+        localStorage.setItem('points', safePoints.toString());
       }
 
       toast.success('User updated successfully');
@@ -1104,7 +1101,7 @@ export const Admin: React.FC = () => {
                     <th className="p-3">Role</th>
                     <th className="p-3">Level</th>
                     <th className="p-3">XP</th>
-                    <th className="p-3">Spendable XP</th>
+                    <th className="p-3">Points</th>
                     <th className="p-3">Status</th>
                     <th className="p-3 text-right pr-4">Actions</th>
                   </tr>
@@ -1131,7 +1128,7 @@ export const Admin: React.FC = () => {
                         role: u.role || 'user',
                         userLevel: u.userLevel || 1,
                         userXP: u.userXP || 0,
-                        spendableXp: Math.max(0, (u.userXP || 0) - (u.spentXP || 0)),
+                        points: u.points || 0,
                         status: u.status || 'active',
                       };
                       const isExpanded = expandedLogs[u.id] === true;
@@ -1235,16 +1232,16 @@ export const Admin: React.FC = () => {
                               />
                             </td>
 
-                            {/* Spendable XP */}
+                            {/* Points */}
                             <td className="p-3">
                               <input
                                 type="number"
                                 min={0}
-                                value={edits.spendableXp}
+                                value={edits.points}
                                 onChange={(e) =>
                                   handleUpdateEdit(
                                     u.id,
-                                    'spendableXp',
+                                    'points',
                                     parseInt(e.target.value, 10) || 0
                                   )
                                 }

@@ -13,7 +13,8 @@ export interface UserDoc {
   lastActive?: string;
   userLevel?: number;
   userXP?: number;
-  spentXP?: number;
+  /** Store currency. Earned at 100 per level-up; replaces the old spentXP bookkeeping. */
+  points?: number;
   activeAvatar?: string;
   activeBorder?: string;
   activeColor?: string;

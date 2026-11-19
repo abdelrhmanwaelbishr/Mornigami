@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useGamification } from '@/context/GamificationContext';
-import { db, collection, getDocs, doc, setDoc } from '@/lib/firebase';
+import { db, collection, getDocs, getDoc, doc, setDoc } from '@/lib/firebase';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -35,6 +35,9 @@ export const Community: React.FC = () => {
   });
   const [friendInput, setFriendInput] = useState('');
   const [loading, setLoading] = useState(true);
+  // Names for friends stored as a uid that is not on the leaderboard (a profile
+  // that is private, deleted, or older than the public projection).
+  const [friendNames, setFriendNames] = useState<Record<string, string>>({});
 
   // Synchronized 30-second toggle between Avatar and Profile Picture for all leaderboard users
   const [showProfilePic, setShowProfilePic] = useState(false);
@@ -115,12 +118,76 @@ export const Community: React.FC = () => {
     fetchLeaderboard();
   }, [user, userDoc, userLevel, userXP, activeAvatar, userNumber]);
 
+  // Stored entries are usernames or uids, depending on what was typed when they
+  // were added. Resolve uid first, then displayName, and keep the raw string when
+  // nothing matches so a friend never disappears from the list.
+  const resolveFriend = (stored: string): LeaderboardUser | null => {
+    const needle = stored.trim().toLowerCase();
+    return (
+      leaderboard.find((u) => u.uid === stored) ||
+      leaderboard.find((u) => u.displayName.toLowerCase() === needle) ||
+      null
+    );
+  };
+
+  // A friend can be stored as a uid that is missing from the leaderboard page it
+  // was added from. Look those up individually so the row still shows a name.
+  useEffect(() => {
+    if (!db) return;
+    // Only uid-shaped entries are worth a lookup; a typed username is not a doc id.
+    // shortcut: the first 25 unresolved friends only, upgrade to batched reads if
+    // friend lists ever get long enough for the rest to matter.
+    const missing = friendsList
+      .filter((f) => !resolveFriend(f) && !friendNames[f] && /^[A-Za-z0-9]{20,}$/.test(f))
+      .slice(0, 25);
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      const found: Record<string, string> = {};
+      await Promise.all(
+        missing.map(async (uid) => {
+          try {
+            const snap = await getDoc(doc(db, 'publicProfiles', uid));
+            const name = snap.exists() ? (snap.data().displayName as string | undefined) : undefined;
+            if (name) found[uid] = name;
+          } catch {
+            // Unreadable profile: the row falls back to a neutral label.
+          }
+        })
+      );
+      if (!cancelled && Object.keys(found).length > 0) {
+        setFriendNames((prev) => ({ ...prev, ...found }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [friendsList, leaderboard, friendNames]);
+
+  // A typed username that matches nobody is still the user's own label; only a
+  // uid we cannot resolve is worth hiding.
+  const friendLabel = (stored: string): string =>
+    resolveFriend(stored)?.displayName ??
+    friendNames[stored] ??
+    (/^[A-Za-z0-9]{20,}$/.test(stored) ? 'Private folder' : stored);
+
   const handleAddFriend = async (e: React.FormEvent) => {
     e.preventDefault();
     const name = friendInput.trim();
-    if (!name || friendsList.includes(name)) return;
+    if (!name) return;
 
-    const updated = [...friendsList, name];
+    // Store the uid when the typed name is a known leaderboard user, so the row
+    // can be re-resolved after that user renames themselves.
+    const match = leaderboard.find((u) => u.displayName.toLowerCase() === name.toLowerCase());
+    const stored = match ? match.uid : name;
+    // Also catch an older displayName entry that resolves to the same person.
+    const exists = friendsList.some((f) => f === stored || (!!match && resolveFriend(f)?.uid === match.uid));
+    if (exists) return;
+
+    const updated = [...friendsList, stored];
     setFriendsList(updated);
     localStorage.setItem('friendsList', JSON.stringify(updated));
     setFriendInput('');
@@ -133,11 +200,11 @@ export const Community: React.FC = () => {
         console.error('Error saving friend to Firestore:', err);
       }
     }
-    toast.success(`Added ${name} to your Friends Camp!`);
+    toast.success(`Added ${match ? match.displayName : name} to your Friends Camp!`);
   };
 
-  const handleRemoveFriend = (friendName: string) => {
-    const updated = friendsList.filter((f) => f !== friendName);
+  const handleRemoveFriend = (stored: string) => {
+    const updated = friendsList.filter((f) => f !== stored);
     setFriendsList(updated);
     localStorage.setItem('friendsList', JSON.stringify(updated));
 
@@ -145,7 +212,7 @@ export const Community: React.FC = () => {
       const userRef = doc(db, 'users', user.uid);
       setDoc(userRef, { friends: updated }, { merge: true }).catch(() => {});
     }
-    toast.info(`Removed ${friendName}`);
+    toast.info(`Removed ${friendLabel(stored)}`);
   };
 
   return (
@@ -300,27 +367,32 @@ export const Community: React.FC = () => {
 
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {friendsList.length > 0 ? (
-                friendsList.map((friend) => (
-                  <div
-                    key={friend}
-                    className="flex items-center justify-between p-3 rounded-xl border border-border bg-background"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-surface border border-border flex items-center justify-center text-xs">
-                        👤
-                      </div>
-                      <span className="text-xs font-bold text-text-primary">{friend}</span>
-                    </div>
-
-                    <button
-                      onClick={() => handleRemoveFriend(friend)}
-                      className="text-text-tertiary hover:text-danger p-1"
-                      title="Remove friend"
+                friendsList.map((friend) => {
+                  const resolved = resolveFriend(friend);
+                  return (
+                    <div
+                      key={friend}
+                      className="flex items-center justify-between p-3 rounded-xl border border-border bg-background"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-surface border border-border flex items-center justify-center text-xs">
+                          {resolved ? resolved.avatar : '👤'}
+                        </div>
+                        <span className="text-xs font-bold text-text-primary">
+                          {friendLabel(friend)}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => handleRemoveFriend(friend)}
+                        className="text-text-tertiary hover:text-danger p-1"
+                        title="Remove friend"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })
               ) : (
                 <div className="text-center py-6 text-xs text-text-secondary">
                   No friends added yet. Enter a username to start tracking together!

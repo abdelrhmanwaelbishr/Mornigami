@@ -95,8 +95,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
           type="button"
           onClick={() => navigate('/store')}
           className="hidden sm:flex items-center gap-2.5 h-10 px-2 rounded-xl hover:bg-background transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface cursor-pointer select-none shrink-0"
-          title={`Level ${safeLevel} · ${safeXP} of ${safeXPNeeded} XP — open the Rewards Store`}
-          aria-label={`Level ${safeLevel}, ${safeXP} of ${safeXPNeeded} XP. Open the Rewards Store.`}
+          title={`Level ${safeLevel} · ${safeXP} of ${safeXPNeeded} XP — open the Store`}
+          aria-label={`Level ${safeLevel}, ${safeXP} of ${safeXPNeeded} XP. Open the Store.`}
         >
           <span className="font-display text-sm font-black text-text-primary tabular-nums leading-none">
             L{safeLevel}
@@ -130,8 +130,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
             }
           }}
           className="flex sm:hidden items-center gap-1.5 h-10 px-2 rounded-xl border border-border bg-background shrink-0 cursor-pointer hover:bg-surface active:scale-95 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface select-none"
-          title={`Level ${safeLevel} • ${safeXP} / ${safeXPNeeded} XP (${safeProgress}%) - Tap to visit Store`}
-          aria-label={`Level ${safeLevel}, ${safeXP} of ${safeXPNeeded} XP. Tap to visit Rewards Store.`}
+          title={`Level ${safeLevel} • ${safeXP} / ${safeXPNeeded} XP (${safeProgress}%) - Tap to visit the Store`}
+          aria-label={`Level ${safeLevel}, ${safeXP} of ${safeXPNeeded} XP. Tap to visit the Store.`}
         >
           <span className="text-[11px] font-black text-text-primary tabular-nums leading-none">
             L{safeLevel}
@@ -206,7 +206,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenAuth, onOpenMobileMenu }) 
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate('/store')} className="cursor-pointer transition-colors duration-150 ease-out">
                 <ShoppingBag className="w-4 h-4 mr-2" />
-                <span>Rewards Store</span>
+                <span>Store</span>
               </DropdownMenuItem>
               {userRole === 'admin' && (
                 <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer transition-colors duration-150 ease-out">
